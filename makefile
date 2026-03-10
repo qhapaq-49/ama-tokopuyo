@@ -16,14 +16,17 @@ ifeq ($(PEXT), true)
 CXXFLAGS += -DPEXT
 endif
 
-SRC_AI = core/*.cpp ai/*.cpp ai/search/*.cpp
+SRC_AI = core/*.cpp ai/*.cpp ai/search/*.cpp ai/search/beam/*.cpp ai/search/dfs/*.cpp
 
-.PHONY: all puyop test clean makedir
+.PHONY: all puyop tokopuyo test clean makedir
 
 all: puyop
 
 puyop: makedir
 	@$(CXX) $(CXXFLAGS) $(SRC_AI) puyop/*.cpp -o bin/puyop/puyop.exe
+
+tokopuyo: makedir
+	@$(CXX) $(CXXFLAGS) $(SRC_AI) tokopuyo/*.cpp -o bin/tokopuyo/tokopuyo.exe
 
 tuner: makedir
 	@$(CXX) $(CXXFLAGS) $(SRC_AI) tuner/*.cpp -o bin/tuner/tuner.exe
@@ -38,6 +41,7 @@ clean: makedir
 makedir:
 	@mkdir -p bin
 	@mkdir -p bin/puyop
+	@mkdir -p bin/tokopuyo
 	@mkdir -p bin/test
 	@mkdir -p bin/tuner/data
 
