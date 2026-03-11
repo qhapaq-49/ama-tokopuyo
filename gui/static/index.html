@@ -105,14 +105,6 @@
   </div>
 </div>
 
-<script>
-  var Module = {
-    onRuntimeInitialized: function() {
-      window._wasmEvaluate = Module.cwrap('evaluate', 'string', ['string']);
-    }
-  };
-</script>
-<script src="ama.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

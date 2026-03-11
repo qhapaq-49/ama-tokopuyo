@@ -394,13 +394,31 @@ async function animateChains(steps) {
   game.animating = false;
 }
 
-// ─── AI ──────────────────────────────────────────────────────────────────────
+// ─── AI (Web Worker) ─────────────────────────────────────────────────────────
+const _aiWorker = new Worker('ai-worker.js');
+const _aiPending = new Map();
+let _aiCallId = 0;
+
+_aiWorker.onmessage = (e) => {
+  const { id, result, error } = e.data;
+  const callbacks = _aiPending.get(id);
+  if (!callbacks) return;
+  _aiPending.delete(id);
+  if (error) callbacks.reject(new Error(error));
+  else callbacks.resolve(result);
+};
+
 async function queryAI(field, queuePairs) {
-  if (!window._wasmEvaluate) throw new Error('WASM not ready');
   const fieldStr = field.map(row => row.join(''));
   const input = JSON.stringify({ field: fieldStr, queue: queuePairs });
-  const output = window._wasmEvaluate(input);
-  return JSON.parse(output);
+  return new Promise((resolve, reject) => {
+    const id = _aiCallId++;
+    _aiPending.set(id, {
+      resolve: (r) => resolve(JSON.parse(r)),
+      reject,
+    });
+    _aiWorker.postMessage({ id, input });
+  });
 }
 
 async function startAIQuery() {
