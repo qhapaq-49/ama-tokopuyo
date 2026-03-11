@@ -747,10 +747,21 @@ function buildField() {
   }
 }
 
+function focusGame() {
+  document.getElementById('field').focus({ preventScroll: true });
+}
+
 function setupControls() {
+  // Show/hide focus hint based on whether the game field is focused
+  const fieldEl = document.getElementById('field');
+  const focusHint = document.getElementById('focus-hint');
+  fieldEl.addEventListener('focus', () => { if (focusHint) focusHint.classList.remove('show'); });
+  fieldEl.addEventListener('blur', () => { if (focusHint) focusHint.classList.add('show'); });
+
   document.getElementById('new-game-btn').addEventListener('click', () => {
     const seed = parseInt(document.getElementById('seed-input').value) || 42;
     startNewGame(seed);
+    focusGame();
   });
 
   document.getElementById('ai-toggle').addEventListener('change', e => {
@@ -758,6 +769,7 @@ function setupControls() {
     if (game.aiEnabled && game.currentPiece && !game.aiQuerying && !game.pendingAI) {
       startAIQuery();
     }
+    focusGame();
   });
 
   document.getElementById('left-btn').addEventListener('click', () => {
@@ -800,12 +812,14 @@ function setupControls() {
       settings.beamWidth = parseInt(beamWidthEl.value);
       document.getElementById('beam-width-val').textContent = beamWidthEl.value;
     });
+    beamWidthEl.addEventListener('change', focusGame);
   }
   if (beamDepthEl) {
     beamDepthEl.addEventListener('input', () => {
       settings.beamDepth = parseInt(beamDepthEl.value);
       document.getElementById('beam-depth-val').textContent = beamDepthEl.value;
     });
+    beamDepthEl.addEventListener('change', focusGame);
   }
   if (badThresholdEl) {
     badThresholdEl.addEventListener('input', () => {
@@ -813,6 +827,7 @@ function setupControls() {
       const label = badThresholdEl.value === '0' ? 'OFF' : badThresholdEl.value + '%';
       document.getElementById('bad-threshold-val').textContent = label;
     });
+    badThresholdEl.addEventListener('change', focusGame);
   }
 
   document.getElementById('ask-ai-btn').addEventListener('click', onAskAI);
@@ -898,4 +913,5 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('seed-input').value = seed;
 
   startNewGame(seed);
+  focusGame();
 });
