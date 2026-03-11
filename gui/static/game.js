@@ -394,6 +394,13 @@ async function animateChains(steps) {
   game.animating = false;
 }
 
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
+const settings = {
+  beamWidth: 250,
+  beamDepth: 16,
+  badMoveThreshold: 0.75,
+};
+
 // ─── AI (Web Worker) ─────────────────────────────────────────────────────────
 const _aiWorker = new Worker('ai-worker.js');
 const _aiPending = new Map();
@@ -410,7 +417,11 @@ _aiWorker.onmessage = (e) => {
 
 async function queryAI(field, queuePairs) {
   const fieldStr = field.map(row => row.join(''));
-  const input = JSON.stringify({ field: fieldStr, queue: queuePairs });
+  const input = JSON.stringify({
+    field: fieldStr,
+    queue: queuePairs,
+    options: { width: settings.beamWidth, depth: settings.beamDepth },
+  });
   return new Promise((resolve, reject) => {
     const id = _aiCallId++;
     _aiPending.set(id, {
@@ -449,13 +460,14 @@ async function startAIQuery() {
 }
 
 function checkBadMove(candidates, x, r) {
+  if (settings.badMoveThreshold <= 0) return null;
   if (!candidates || candidates.length === 0) return null;
   const bestScore = candidates[0].expected_score;
-  if (bestScore <= 1000) return null;  // not meaningful enough to warn
+  if (bestScore <= 1000) return null;
   const humanCand = candidates.find(c => c.x === x && c.r === r);
   const humanScore = humanCand ? humanCand.expected_score : 0;
   const ratio = humanScore / bestScore;
-  if (ratio < 0.75) {
+  if (ratio < settings.badMoveThreshold) {
     return {
       bestScore,
       humanScore,
@@ -778,6 +790,30 @@ function setupControls() {
 
   document.getElementById('undo-btn').addEventListener('click', undoMove);
   document.getElementById('redo-btn').addEventListener('click', redoMove);
+
+  // Settings sliders
+  const beamWidthEl = document.getElementById('beam-width');
+  const beamDepthEl = document.getElementById('beam-depth');
+  const badThresholdEl = document.getElementById('bad-threshold');
+  if (beamWidthEl) {
+    beamWidthEl.addEventListener('input', () => {
+      settings.beamWidth = parseInt(beamWidthEl.value);
+      document.getElementById('beam-width-val').textContent = beamWidthEl.value;
+    });
+  }
+  if (beamDepthEl) {
+    beamDepthEl.addEventListener('input', () => {
+      settings.beamDepth = parseInt(beamDepthEl.value);
+      document.getElementById('beam-depth-val').textContent = beamDepthEl.value;
+    });
+  }
+  if (badThresholdEl) {
+    badThresholdEl.addEventListener('input', () => {
+      settings.badMoveThreshold = parseInt(badThresholdEl.value) / 100;
+      const label = badThresholdEl.value === '0' ? 'OFF' : badThresholdEl.value + '%';
+      document.getElementById('bad-threshold-val').textContent = label;
+    });
+  }
 
   document.getElementById('ask-ai-btn').addEventListener('click', onAskAI);
   document.getElementById('play-ai-btn').addEventListener('click', onPlayAI);

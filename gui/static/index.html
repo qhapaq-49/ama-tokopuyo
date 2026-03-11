@@ -77,6 +77,38 @@
       </div>
     </div>
 
+    <!-- Settings -->
+    <details class="panel">
+      <summary style="cursor:pointer;user-select:none"><h3 style="display:inline">設定</h3></summary>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:10px">
+
+        <label class="setting-row">
+          <span>ビーム幅 <small>(精度・速度)</small></span>
+          <div class="setting-control">
+            <input type="range" id="beam-width" min="50" max="500" step="50" value="250">
+            <span id="beam-width-val">250</span>
+          </div>
+        </label>
+
+        <label class="setting-row">
+          <span>探索深さ <small>(手数先読み)</small></span>
+          <div class="setting-control">
+            <input type="range" id="beam-depth" min="4" max="24" step="2" value="16">
+            <span id="beam-depth-val">16</span>
+          </div>
+        </label>
+
+        <label class="setting-row">
+          <span>悪手しきい値 <small>(0=警告なし)</small></span>
+          <div class="setting-control">
+            <input type="range" id="bad-threshold" min="0" max="95" step="5" value="75">
+            <span id="bad-threshold-val">75%</span>
+          </div>
+        </label>
+
+      </div>
+    </details>
+
   </div>
 </div>
 

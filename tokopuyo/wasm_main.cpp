@@ -150,12 +150,17 @@ const char* evaluate(const char* json_input)
 
         bool no_fire = false;
         std::string weight_name = "build";
+        beam::Configs beam_configs;
         if (req.contains("options")) {
             auto& opts = req["options"];
             if (opts.contains("no_fire") && opts["no_fire"].is_boolean())
                 no_fire = opts["no_fire"].get<bool>();
             if (opts.contains("weights") && opts["weights"].is_string())
                 weight_name = opts["weights"].get<std::string>();
+            if (opts.contains("width") && opts["width"].is_number_integer())
+                beam_configs.width = std::max(1, opts["width"].get<int>());
+            if (opts.contains("depth") && opts["depth"].is_number_integer())
+                beam_configs.depth = std::max(1, opts["depth"].get<int>());
         }
 
         beam::eval::Weight w;
@@ -165,7 +170,7 @@ const char* evaluate(const char* json_input)
             w = g_weights.begin()->second;
 
         auto t0 = std::chrono::high_resolution_clock::now();
-        auto res = beam::search_multi(field, queue, w);
+        auto res = beam::search_multi(field, queue, w, beam_configs);
         auto t1 = std::chrono::high_resolution_clock::now();
         i32 elapsed_ms = (i32)std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
 

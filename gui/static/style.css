@@ -158,6 +158,39 @@ button.danger {
   margin-bottom: 8px;
 }
 
+.setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: #ccc;
+}
+
+.setting-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setting-control input[type=range] {
+  flex: 1;
+  accent-color: #4cc9f0;
+}
+
+.setting-control span {
+  min-width: 2.5rem;
+  text-align: right;
+  color: #4cc9f0;
+  font-weight: bold;
+}
+
+details.panel > summary {
+  list-style: none;
+}
+details.panel > summary::-webkit-details-marker {
+  display: none;
+}
+
 /* Current piece preview */
 .piece-display {
   display: grid;
