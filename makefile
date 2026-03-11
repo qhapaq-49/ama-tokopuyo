@@ -49,13 +49,14 @@ EMCC = /home/shiku/AI/emsdk/upstream/emscripten/emcc
 
 wasm:
 	@mkdir -p gui/static
-	$(EMCC) -std=c++20 -O1 -DNDEBUG -fexceptions -msimd128 -msse -msse2 -msse3 -mssse3 -msse4.1 \
+	$(EMCC) -std=c++20 -O3 -DNDEBUG -fexceptions -pthread \
+	  -msimd128 -msse -msse2 -msse3 -mssse3 -msse4.1 \
 	  -s WASM=1 \
+	  -s USE_PTHREADS=1 \
+	  -s PTHREAD_POOL_SIZE=6 \
 	  -s EXPORTED_FUNCTIONS='["_evaluate","_malloc","_free"]' \
 	  -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]' \
 	  -s ALLOW_MEMORY_GROWTH=1 \
-	  -s ASSERTIONS=1 \
-	  -s NO_DISABLE_EXCEPTION_CATCHING \
 	  --embed-file config.json \
 	  $(SRC_AI) tokopuyo/wasm_main.cpp \
 	  -o gui/static/ama.js

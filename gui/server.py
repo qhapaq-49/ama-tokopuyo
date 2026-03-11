@@ -12,6 +12,13 @@ STATIC_DIR = Path(__file__).parent / "static"
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path='')
 
 
+@app.after_request
+def add_coop_coep(response):
+    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
+    response.headers['Cross-Origin-Embedder-Policy'] = 'require-corp'
+    return response
+
+
 @app.route("/")
 def index():
     return send_from_directory(str(STATIC_DIR), "index.html")

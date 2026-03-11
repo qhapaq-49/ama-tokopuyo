@@ -286,30 +286,6 @@ Result search_multi(
     }
 
     // Searching multiple queues at the same time
-#ifdef __EMSCRIPTEN__
-    // WASM: single-threaded (no pthreads support without SharedArrayBuffer)
-    for (auto i = 0; i < beam::BRANCH; ++i) {
-        auto b = beam::search(field, queues[i], w, configs);
-
-        if (b.candidates.empty()) {
-            continue;
-        }
-
-        if (result.candidates.empty()) {
-            result = b;
-            continue;
-        }
-
-        for (auto& c1 : result.candidates) {
-            for (auto& c2 : b.candidates) {
-                if (c1.placement == c2.placement) {
-                    c1.score += c2.score;
-                    break;
-                }
-            }
-        }
-    }
-#else
     std::vector<std::thread> threads;
     std::mutex mtx;
 
@@ -345,7 +321,6 @@ Result search_multi(
     for (auto& t : threads) {
         t.join();
     }
-#endif
 
     // Sorts candidates by their total accumulated scores
     if (!result.candidates.empty()) {
