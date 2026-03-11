@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>とこぷよAI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>とこぷよAI</h1>
+
+<div class="controls-bar">
+  <label>シード: <input type="number" id="seed-input" value="42" min="0" max="16777215"></label>
+  <button id="new-game-btn" class="primary">新しいゲーム</button>
+  <label>
+    <input type="checkbox" id="ai-toggle">
+    AI評価モード
+  </label>
+</div>
+
+<div class="game-area">
+
+  <!-- FIELD -->
+  <div class="field-wrap">
+    <div id="field"></div>
+    <div id="chain-banner" class="chain-banner"></div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Current piece -->
+    <div class="panel">
+      <h3>現在のツモ</h3>
+      <div id="piece-display"></div>
+      <div id="ai-status" class="ai-status"></div>
+    </div>
+
+    <!-- Next queue -->
+    <div class="panel">
+      <h3>NEXT</h3>
+      <div id="next-queue"></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="panel">
+      <h3>操作</h3>
+
+      <div class="rotate-row">
+        <button id="rot-ccw-btn">↺ 左回転 (Z)</button>
+        <button id="rot-cw-btn">↻ 右回転 (X)</button>
+      </div>
+
+      <div class="move-grid">
+        <button id="left-btn">← (←)</button>
+        <button id="drop-btn" class="drop-btn primary">落とす (↓)</button>
+        <button id="right-btn">→ (→)</button>
+      </div>
+    </div>
+
+    <!-- Ask AI -->
+    <button id="ask-ai-btn" class="primary" style="width:100%">Ask AI (A)</button>
+    <button id="play-ai-btn" style="width:100%">AI最善手を打つ (Shift+A)</button>
+
+    <!-- Undo / Redo -->
+    <div class="undo-row">
+      <button id="undo-btn">Undo (Ctrl+Z)</button>
+      <button id="redo-btn">Redo (Ctrl+Y)</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="panel">
+      <div class="stats">
+        <span>手数: <span id="move-count" class="val">0</span></span>
+        <span>連鎖: <span id="chain-count" class="val">0</span></span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- AI Overlay -->
+<div id="ai-overlay" class="overlay">
+  <div class="modal">
+    <h3>AI候補手</h3>
+    <p style="font-size:0.8rem;color:#aaa">現在の局面に対するAIの推奨手 (上位5件)</p>
+    <ul id="ai-candidates" class="candidate-list"></ul>
+    <div class="modal-buttons">
+      <button id="close-ai-btn">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bad Move Alert -->
+<div id="bad-move-overlay" class="overlay">
+  <div class="modal">
+    <h3>⚠️ 悪い手です！</h3>
+    <p id="bad-move-msg"></p>
+    <p style="font-size:0.75rem;color:#888;margin-top:6px">キー: <kbd>Z</kbd> やり直す　／　<kbd>Enter</kbd> このまま続ける</p>
+    <div class="modal-buttons">
+      <button id="undo-alert-btn" class="danger">やり直す [Z]</button>
+      <button id="continue-btn">このまま続ける [Enter]</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var Module = {
+    onRuntimeInitialized: function() {
+      window._wasmEvaluate = Module.cwrap('evaluate', 'string', ['string']);
+    }
+  };
+</script>
+<script src="ama.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
