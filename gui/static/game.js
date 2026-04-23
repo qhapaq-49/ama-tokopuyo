@@ -108,10 +108,25 @@ function findGroups(field) {
   return groups;
 }
 
-// Returns { field, steps: [{popped: Set<"r,c">, fieldAfter},...], chainCount }
+// ─── CHAIN SCORE (Puyo Puyo Tsu rules) ──────────────────────────────────────
+const CHAIN_POWER  = [0, 8, 16, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 480, 512];
+const COLOR_BONUS  = [0, 0, 3, 6, 12, 24];
+const GROUP_BONUS  = [0, 0, 0, 0, 0, 2, 3, 4, 5, 6, 7, 10];
+
+function calcStepScore(groups, chainIndex) {
+  const popCount   = groups.reduce((s, g) => s + g.cells.length, 0);
+  const power      = CHAIN_POWER[Math.min(chainIndex, CHAIN_POWER.length - 1)];
+  const colorBonus = COLOR_BONUS[Math.min(new Set(groups.map(g => g.color)).size, COLOR_BONUS.length - 1)];
+  let groupBonus   = 0;
+  for (const g of groups) groupBonus += GROUP_BONUS[Math.min(g.cells.length, GROUP_BONUS.length - 1)];
+  return popCount * 10 * Math.max(1, Math.min(999, power + colorBonus + groupBonus));
+}
+
+// Returns { field, steps: [{popped, fieldAfter, stepScore}], chainCount, totalScore, garbageSent }
 function popChains(field) {
   const steps = [];
   let chainCount = 0;
+  let totalScore = 0;
   let f = cloneField(field);
 
   while (true) {
@@ -119,7 +134,10 @@ function popChains(field) {
     const toRemove = groups.filter(g => g.cells.length >= 4);
     if (toRemove.length === 0) break;
 
+    const stepScore = calcStepScore(toRemove, chainCount);
+    totalScore += stepScore;
     chainCount++;
+
     const removeCells = new Set();
     for (const g of toRemove) {
       for (const [r, c] of g.cells) removeCells.add(`${r},${c}`);
@@ -139,11 +157,11 @@ function popChains(field) {
       newF[r][c] = '.';
     }
     const afterGravity = applyGravity(newF);
-    steps.push({ popped: removeCells, fieldAfter: afterGravity });
+    steps.push({ popped: removeCells, fieldAfter: afterGravity, stepScore });
     f = afterGravity;
   }
 
-  return { field: f, steps, chainCount };
+  return { field: f, steps, chainCount, totalScore, garbageSent: Math.floor(totalScore / 70) };
 }
 
 // ─── PIECE CONTROLS ──────────────────────────────────────────────────────────
@@ -215,6 +233,7 @@ const game = {
   future: [],
   moveCount: 0,
   chainCount: 0,
+  totalGarbage: 0,
   animating: false,
   gameOver: false,
   aiEnabled: false,
@@ -322,6 +341,8 @@ function renderQueue() {
 function renderStats() {
   document.getElementById('move-count').textContent = game.moveCount;
   document.getElementById('chain-count').textContent = game.chainCount;
+  const gEl = document.getElementById('garbage-count');
+  if (gEl) gEl.textContent = game.totalGarbage;
 }
 
 function renderAiStatus() {
@@ -363,14 +384,14 @@ function render() {
 // ─── CHAIN ANIMATION ─────────────────────────────────────────────────────────
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-async function animateChains(steps) {
+async function animateChains(steps, garbageSent) {
   game.animating = true;
   const banner = document.getElementById('chain-banner');
 
   for (let i = 0; i < steps.length; i++) {
-    const { popped, fieldAfter } = steps[i];
+    const { popped, fieldAfter, stepScore } = steps[i];
+    const isLast = i === steps.length - 1;
 
-    // Flash popped cells
     for (const key of popped) {
       const [r, c] = key.split(',').map(Number);
       const el = document.getElementById(`c${r}_${c}`);
@@ -378,13 +399,13 @@ async function animateChains(steps) {
     }
 
     if (banner) {
-      banner.textContent = `${i + 1}連鎖！`;
+      const garbageLine = isLast && garbageSent > 0 ? `<br><span style="font-size:1.1rem">おじゃま ${garbageSent} 個分</span>` : '';
+      banner.innerHTML = `${i + 1}連鎖！${garbageLine}`;
       banner.classList.add('show');
     }
 
     await sleep(420);
 
-    // Apply new field
     game.field = fieldAfter;
     if (banner) banner.classList.remove('show');
     renderField();
@@ -611,6 +632,7 @@ function saveToHistory() {
     queueIndex: game.queueIndex,
     moveCount: game.moveCount,
     chainCount: game.chainCount,
+    totalGarbage: game.totalGarbage,
   });
   game.future = [];
 }
@@ -642,11 +664,13 @@ async function dropCurrentPiece() {
   render();
 
   // Run chain simulation
-  const { steps, chainCount } = popChains(game.field);
+  const { steps, chainCount, garbageSent } = popChains(game.field);
   game.chainCount += chainCount;
+  game.totalGarbage += garbageSent;
 
   if (steps.length > 0) {
-    await animateChains(steps);
+    await animateChains(steps, garbageSent);
+    renderStats();
   } else {
     game.field = game.field; // no-op, already set
   }
@@ -698,11 +722,13 @@ function undoMove() {
     queueIndex: game.queueIndex,
     moveCount: game.moveCount,
     chainCount: game.chainCount,
+    totalGarbage: game.totalGarbage,
   });
   game.field = snap.field;
   game.queueIndex = snap.queueIndex;
   game.moveCount = snap.moveCount;
   game.chainCount = snap.chainCount;
+  game.totalGarbage = snap.totalGarbage;
   game.pendingAI = null;
   game.gameOver = false;
   nextPiece();
@@ -716,11 +742,13 @@ function redoMove() {
     queueIndex: game.queueIndex,
     moveCount: game.moveCount,
     chainCount: game.chainCount,
+    totalGarbage: game.totalGarbage,
   });
   game.field = snap.field;
   game.queueIndex = snap.queueIndex;
   game.moveCount = snap.moveCount;
   game.chainCount = snap.chainCount;
+  game.totalGarbage = snap.totalGarbage;
   game.pendingAI = null;
   game.gameOver = false;
   nextPiece();
@@ -735,6 +763,7 @@ function startNewGame(seed) {
   game.future = [];
   game.moveCount = 0;
   game.chainCount = 0;
+  game.totalGarbage = 0;
   game.animating = false;
   game.gameOver = false;
   game.pendingAI = null;

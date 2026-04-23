@@ -38,17 +38,19 @@
   <!-- SIDEBAR -->
   <div class="sidebar">
 
-    <!-- Current piece -->
+    <!-- Current piece + Next queue (combined) -->
     <div class="panel">
-      <h3>現在のツモ</h3>
-      <div id="piece-display"></div>
-      <div id="ai-status" class="ai-status"></div>
-    </div>
-
-    <!-- Next queue -->
-    <div class="panel">
-      <h3>NEXT</h3>
-      <div id="next-queue"></div>
+      <div class="piece-queue-row">
+        <div class="piece-section">
+          <div class="piece-label">現在のツモ</div>
+          <div id="piece-display"></div>
+          <div id="ai-status" class="ai-status"></div>
+        </div>
+        <div class="queue-section">
+          <div class="piece-label">NEXT</div>
+          <div id="next-queue"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Controls -->
@@ -82,6 +84,7 @@
       <div class="stats">
         <span>手数: <span id="move-count" class="val">0</span></span>
         <span>連鎖: <span id="chain-count" class="val">0</span></span>
+        <span>おじゃま: <span id="garbage-count" class="val">0</span></span>
       </div>
     </div>
 

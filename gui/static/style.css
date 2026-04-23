@@ -192,6 +192,22 @@ details.panel > summary::-webkit-details-marker {
   display: none;
 }
 
+/* Current piece + Next combined panel */
+.piece-queue-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.piece-section { flex: 1; min-width: 0; }
+.queue-section  { flex: 1; min-width: 0; }
+.piece-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #aaa;
+  margin-bottom: 6px;
+}
+
 /* Current piece preview */
 .piece-display {
   display: grid;
