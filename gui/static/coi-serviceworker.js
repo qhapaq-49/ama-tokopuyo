@@ -9,14 +9,16 @@ if (typeof window === 'undefined') {
     if (e.request.cache === 'only-if-cached' && e.request.mode !== 'same-origin') {
       return;
     }
+    const isSameOrigin = e.request.url.startsWith(self.location.origin);
+    if (!isSameOrigin) return; // cross-origin requests pass through untouched
     e.respondWith(
       fetch(e.request).then(r => {
+        if (!r || r.status === 0) return r;
         const h = new Headers(r.headers);
         h.set('Cross-Origin-Opener-Policy', 'same-origin');
         h.set('Cross-Origin-Embedder-Policy', 'require-corp');
-        h.set('Cross-Origin-Resource-Policy', 'cross-origin');
         return new Response(r.body, { status: r.status, statusText: r.statusText, headers: h });
-      })
+      }).catch(() => fetch(e.request))
     );
   });
 
