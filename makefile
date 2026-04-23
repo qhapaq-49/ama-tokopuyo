@@ -45,7 +45,7 @@ makedir:
 	@mkdir -p bin/test
 	@mkdir -p bin/tuner/data
 
-EMCC = /home/shiku/AI/emsdk/upstream/emscripten/emcc
+EMCC ?= /home/shiku/AI/emsdk/upstream/emscripten/emcc
 
 wasm:
 	@mkdir -p gui/static

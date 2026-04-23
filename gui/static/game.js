@@ -305,7 +305,7 @@ function renderQueue() {
   const el = document.getElementById('next-queue');
   if (!el) return;
   el.innerHTML = '';
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 1; i <= 2; i++) {
     const idx = game.queueIndex + i;
     if (idx >= game.fullQueue.length) break;
     const [c1, c2] = game.fullQueue[idx];
@@ -459,12 +459,19 @@ async function startAIQuery() {
   }
 }
 
-function checkBadMove(candidates, x, r) {
+function checkBadMove(candidates, x, r, pair) {
   if (settings.badMoveThreshold <= 0) return null;
   if (!candidates || candidates.length === 0) return null;
   const bestScore = candidates[0].expected_score;
   if (bestScore <= 1000) return null;
-  const humanCand = candidates.find(c => c.x === x && c.r === r);
+  let humanCand = candidates.find(c => c.x === x && c.r === r);
+  // 同色ペアの等価配置: UP≡DOWN, RIGHT at x ≡ LEFT at x+1
+  if (!humanCand && pair && pair[0] === pair[1]) {
+    if      (r === 'UP')    humanCand = candidates.find(c => c.x === x     && c.r === 'DOWN');
+    else if (r === 'DOWN')  humanCand = candidates.find(c => c.x === x     && c.r === 'UP');
+    else if (r === 'RIGHT') humanCand = candidates.find(c => c.x === x + 1 && c.r === 'LEFT');
+    else if (r === 'LEFT')  humanCand = candidates.find(c => c.x === x - 1 && c.r === 'RIGHT');
+  }
   const humanScore = humanCand ? humanCand.expected_score : 0;
   const ratio = humanScore / bestScore;
   if (ratio < settings.badMoveThreshold) {
@@ -643,7 +650,7 @@ async function dropCurrentPiece() {
 
   // Bad move check (after animation)
   if (game.aiEnabled && pendingAI && pendingAI.forQueueIndex === prevQI) {
-    const bad = checkBadMove(pendingAI.candidates, x, r);
+    const bad = checkBadMove(pendingAI.candidates, x, r, pair);
     if (bad) {
       showBadMoveAlert(bad, x, r);
       return; // don't advance to next piece yet
@@ -752,12 +759,6 @@ function focusGame() {
 }
 
 function setupControls() {
-  // Show/hide focus hint based on whether the game field is focused
-  const fieldEl = document.getElementById('field');
-  const focusHint = document.getElementById('focus-hint');
-  fieldEl.addEventListener('focus', () => { if (focusHint) focusHint.classList.remove('show'); });
-  fieldEl.addEventListener('blur', () => { if (focusHint) focusHint.classList.add('show'); });
-
   document.getElementById('new-game-btn').addEventListener('click', () => {
     const seed = parseInt(document.getElementById('seed-input').value) || 42;
     startNewGame(seed);
