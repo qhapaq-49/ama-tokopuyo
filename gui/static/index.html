@@ -130,6 +130,14 @@
         </label>
 
         <label class="setting-row">
+          <span>発火しきい値 <small>(0=制限なし)</small></span>
+          <div class="setting-control">
+            <input type="range" id="fire-threshold" min="0" max="50000" step="1000" value="5000">
+            <span id="fire-threshold-val">5,000</span>
+          </div>
+        </label>
+
+        <label class="setting-row">
           <span>発火手を除外 <small>(構築練習用)</small></span>
           <div class="setting-control">
             <input type="checkbox" id="no-fire-toggle" style="width:16px;height:16px;cursor:pointer">
