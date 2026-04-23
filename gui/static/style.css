@@ -214,6 +214,10 @@ details.panel > summary::-webkit-details-marker {
   color: rgba(255,255,255,0.92);
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
+.piece-cell.cell-R { background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b); box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+.piece-cell.cell-Y { background: radial-gradient(circle at 35% 35%, #ffd93d, #e6a817); color: rgba(0,0,0,0.8); text-shadow: none; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+.piece-cell.cell-G { background: radial-gradient(circle at 35% 35%, #6bcb77, #27ae60); box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+.piece-cell.cell-B { background: radial-gradient(circle at 35% 35%, #74b9ff, #2980b9); box-shadow: 0 2px 4px rgba(0,0,0,.4); }
 
 .rotation-label {
   font-size: 0.75rem;
@@ -391,3 +395,24 @@ details.panel > summary::-webkit-details-marker {
 }
 
 .chain-banner.show { display: block; }
+
+/* 13段目（row 0）は見えない領域なので薄く表示 */
+.cell-row0 { opacity: 0.3; }
+
+/* ─── MOBILE ──────────────────────────────── */
+@media (max-width: 540px) {
+  body { align-items: flex-start; overflow-x: auto; }
+
+  .game-area { flex-direction: column; align-items: center; width: 100%; }
+
+  #field {
+    grid-template-columns: repeat(6, 32px);
+    grid-template-rows: repeat(13, 32px);
+    gap: 2px;
+  }
+
+  .cell { width: 32px; height: 32px; font-size: 15px; }
+  .cell-ghost-R, .cell-ghost-Y, .cell-ghost-G, .cell-ghost-B { border-width: 1px; }
+
+  .sidebar { width: 100%; max-width: 320px; }
+}

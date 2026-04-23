@@ -256,6 +256,7 @@ function renderField() {
         el.className = 'cell cell-empty';
         el.textContent = '';
       }
+      if (row === 0) el.classList.add('cell-row0');
     }
   }
 }
@@ -399,6 +400,8 @@ const settings = {
   beamWidth: 250,
   beamDepth: 16,
   badMoveThreshold: 0.75,
+  weightsMode: 'build',
+  noFire: false,
 };
 
 // ─── AI (Web Worker) ─────────────────────────────────────────────────────────
@@ -420,7 +423,7 @@ async function queryAI(field, queuePairs) {
   const input = JSON.stringify({
     field: fieldStr,
     queue: queuePairs,
-    options: { width: settings.beamWidth, depth: settings.beamDepth },
+    options: { width: settings.beamWidth, depth: settings.beamDepth, weights: settings.weightsMode, no_fire: settings.noFire },
   });
   return new Promise((resolve, reject) => {
     const id = _aiCallId++;
@@ -829,6 +832,26 @@ function setupControls() {
       document.getElementById('bad-threshold-val').textContent = label;
     });
     badThresholdEl.addEventListener('change', focusGame);
+  }
+
+  const aiModeEl = document.getElementById('ai-mode');
+  if (aiModeEl) {
+    aiModeEl.addEventListener('change', () => {
+      settings.weightsMode = aiModeEl.value;
+      game.pendingAI = null;
+      if (game.aiEnabled && game.currentPiece) startAIQuery();
+      focusGame();
+    });
+  }
+
+  const noFireEl = document.getElementById('no-fire-toggle');
+  if (noFireEl) {
+    noFireEl.addEventListener('change', () => {
+      settings.noFire = noFireEl.checked;
+      game.pendingAI = null;
+      if (game.aiEnabled && game.currentPiece) startAIQuery();
+      focusGame();
+    });
   }
 
   document.getElementById('ask-ai-btn').addEventListener('click', onAskAI);
