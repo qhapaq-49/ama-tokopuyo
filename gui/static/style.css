@@ -245,7 +245,7 @@ details.panel > summary::-webkit-details-marker {
 #next-queue {
   display: flex;
   flex-direction: row;
-  gap: 6px;
+  gap: 14px;
   align-items: flex-start;
 }
 
