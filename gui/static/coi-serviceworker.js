@@ -30,7 +30,7 @@ if (typeof window === 'undefined') {
             headers: newHeaders,
           });
         })
-        .catch(e => console.error('[coi-sw]', e))
+        .catch(e => { console.error('[coi-sw]', e); return Response.error(); })
     );
   });
 } else {
