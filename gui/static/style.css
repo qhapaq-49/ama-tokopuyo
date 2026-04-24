@@ -255,6 +255,12 @@ details.panel > summary::-webkit-details-marker {
   width: 14px;
 }
 
+.next-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .mini-cell {
   width: 24px;
   height: 24px;
