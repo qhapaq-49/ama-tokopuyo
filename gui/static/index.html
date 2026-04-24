@@ -54,7 +54,7 @@
     </div>
 
     <!-- Controls -->
-    <div class="panel">
+    <div class="panel controls-panel">
       <h3>操作</h3>
 
       <div class="rotate-row">
@@ -147,6 +147,23 @@
       </div>
     </details>
 
+  </div>
+</div>
+
+<!-- Mobile Controls (hidden on desktop) -->
+<div class="mobile-controls">
+  <div class="mobile-ctrl-row">
+    <button class="mob-rot" onclick="document.getElementById('rot-ccw-btn').click()">↺</button>
+    <button class="mob-move" onclick="document.getElementById('left-btn').click()">←</button>
+    <button class="mob-drop primary" onclick="document.getElementById('drop-btn').click()">↓</button>
+    <button class="mob-move" onclick="document.getElementById('right-btn').click()">→</button>
+    <button class="mob-rot" onclick="document.getElementById('rot-cw-btn').click()">↻</button>
+  </div>
+  <div class="mobile-ctrl-row">
+    <button onclick="document.getElementById('undo-btn').click()">Undo</button>
+    <button onclick="document.getElementById('redo-btn').click()">Redo</button>
+    <button class="primary" onclick="document.getElementById('ask-ai-btn').click()">Ask AI</button>
+    <button onclick="document.getElementById('play-ai-btn').click()">AI最善手</button>
   </div>
 </div>
 

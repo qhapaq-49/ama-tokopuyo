@@ -415,20 +415,80 @@ details.panel > summary::-webkit-details-marker {
 /* 13段目（row 0）は見えない領域なので薄く表示 */
 .cell-row0 { opacity: 0.3; }
 
+/* Mobile controls: hidden on desktop */
+.mobile-controls { display: none; }
+
 /* ─── MOBILE ──────────────────────────────── */
 @media (max-width: 540px) {
-  body { align-items: flex-start; overflow-x: auto; }
+  body { padding: 6px; align-items: stretch; overflow-x: hidden; }
 
-  .game-area { flex-direction: column; align-items: center; width: 100%; }
+  h1 { font-size: 1rem; margin-bottom: 6px; }
+
+  .controls-bar { gap: 8px; margin-bottom: 6px; font-size: 0.8rem; }
+  .controls-bar input[type=number] { width: 64px; }
+
+  .game-area {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .field-wrap { flex-shrink: 0; }
 
   #field {
     grid-template-columns: repeat(6, 32px);
     grid-template-rows: repeat(13, 32px);
     gap: 2px;
+    padding: 4px;
   }
 
-  .cell { width: 32px; height: 32px; font-size: 15px; }
+  .cell { width: 32px; height: 32px; font-size: 14px; }
   .cell-ghost-R, .cell-ghost-Y, .cell-ghost-G, .cell-ghost-B { border-width: 1px; }
 
-  .sidebar { width: 100%; max-width: 320px; }
+  .sidebar {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    gap: 8px;
+  }
+
+  /* Hide desktop controls panel from sidebar */
+  .sidebar .controls-panel { display: none; }
+
+  /* Hide ask-ai / play-ai from sidebar on mobile (they're in mobile controls bar) */
+  .sidebar > #ask-ai-btn,
+  .sidebar > #play-ai-btn { display: none; }
+
+  /* Compact piece preview */
+  .piece-display {
+    grid-template-columns: repeat(2, 26px);
+    grid-template-rows: repeat(2, 26px);
+    gap: 2px;
+  }
+  .piece-cell { width: 26px; height: 26px; font-size: 12px; }
+
+  /* Mobile controls bar */
+  .mobile-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 8px;
+    width: 100%;
+  }
+
+  .mobile-ctrl-row {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .mobile-ctrl-row button {
+    flex: 1;
+    padding: 14px 2px;
+    font-size: 0.95rem;
+    touch-action: manipulation;
+  }
+
+  .mobile-ctrl-row .mob-drop { flex: 1.5; }
 }
