@@ -423,20 +423,7 @@ const settings = {
   badMoveThreshold: 0.75,
   weightsMode: 'build',
   noFire: false,
-  fireThreshold: 5000,
 };
-
-// ─── FIRE THRESHOLD FILTER ───────────────────────────────────────────────────
-function applyFireThreshold(candidates, field, pair) {
-  if (settings.fireThreshold <= 0 || settings.noFire) return candidates;
-  const filtered = candidates.filter(c => {
-    const newField = applyMove(field, c.x, c.r, pair);
-    const { chainCount, totalScore } = popChains(newField);
-    if (chainCount === 0) return true;
-    return totalScore >= settings.fireThreshold;
-  });
-  return filtered.length > 0 ? filtered : candidates;
-}
 
 // ─── AI (Web Worker) ─────────────────────────────────────────────────────────
 const _aiWorker = new Worker('ai-worker.js');
@@ -485,8 +472,7 @@ async function startAIQuery() {
     const result = await queryAI(game.field, queuePairs);
     if (result.error) throw new Error(result.error);
     if (game.queueIndex === qi) {
-      const filtered = applyFireThreshold(result.candidates, game.field, game.fullQueue[qi]);
-      game.pendingAI = { candidates: filtered, forQueueIndex: qi };
+      game.pendingAI = { candidates: result.candidates, forQueueIndex: qi };
     }
   } catch (e) {
     game.aiError = e.message;
@@ -576,7 +562,7 @@ async function onAskAI() {
     try {
       const result = await queryAI(game.field, queuePairs);
       if (result.error) { alert('AI error: ' + result.error); return; }
-      candidates = applyFireThreshold(result.candidates, game.field, game.fullQueue[qi]);
+      candidates = result.candidates;
     } catch (e) {
       alert('AI error: ' + e.message);
       return;
@@ -597,7 +583,7 @@ async function onPlayAI() {
     try {
       const result = await queryAI(game.field, queuePairs);
       if (result.error) { alert('AI error: ' + result.error); return; }
-      candidates = applyFireThreshold(result.candidates, game.field, game.fullQueue[qi]);
+      candidates = result.candidates;
       if (game.queueIndex === qi) {
         game.pendingAI = { candidates, forQueueIndex: qi };
       }
@@ -894,16 +880,6 @@ function setupControls() {
       if (game.aiEnabled && game.currentPiece) startAIQuery();
       focusGame();
     });
-  }
-
-  const fireThresholdEl = document.getElementById('fire-threshold');
-  if (fireThresholdEl) {
-    fireThresholdEl.addEventListener('input', () => {
-      settings.fireThreshold = parseInt(fireThresholdEl.value);
-      const label = settings.fireThreshold === 0 ? 'OFF' : settings.fireThreshold.toLocaleString();
-      document.getElementById('fire-threshold-val').textContent = label;
-    });
-    fireThresholdEl.addEventListener('change', focusGame);
   }
 
   document.getElementById('ask-ai-btn').addEventListener('click', onAskAI);
