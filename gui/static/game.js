@@ -332,10 +332,8 @@ function renderQueue() {
     const div = document.createElement('div');
     div.className = 'next-item';
     div.innerHTML = `<span>${i}</span>
-      <div class="next-pair">
-        <div class="mini-cell ${c2}">${c2}</div>
-        <div class="mini-cell ${c1}">${c1}</div>
-      </div>`;
+      <div class="mini-cell ${c2}">${c2}</div>
+      <div class="mini-cell ${c1}">${c1}</div>`;
     el.appendChild(div);
   }
 }

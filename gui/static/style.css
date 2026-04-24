@@ -242,23 +242,24 @@ details.panel > summary::-webkit-details-marker {
 }
 
 /* Next queue */
+#next-queue {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: flex-start;
+}
+
 .next-item {
   display: flex;
-  gap: 4px;
-  margin-bottom: 5px;
+  flex-direction: column;
   align-items: center;
+  gap: 2px;
 }
 
 .next-item span {
   font-size: 0.7rem;
   color: #888;
-  width: 14px;
-}
-
-.next-pair {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  margin-bottom: 2px;
 }
 
 .mini-cell {
