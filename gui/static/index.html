@@ -117,17 +117,21 @@
           </div>
         </label>
 
+        <!-- AIモードセレクタ: fast/freestyle/acはai::thinkからの緊急フォールバック用DFSであり、
+             計算資源が十分なとこぷよ用途ではbuild一択のためUI自体を非表示。
+             セカンド向けの着想で組むわけでもなく（ちぎりPTが低いだけ）ユーザーが選ぶ意味がない。
         <label class="setting-row">
           <span>AIモード</span>
           <div class="setting-control">
-            <select id="ai-mode" style="background:#2d2d4e;border:1px solid #555;color:#eee;padding:3px 6px;border-radius:4px;flex:1">
-              <option value="build">build（連鎖構築）</option>
-              <option value="fast">fast（高速）</option>
+            <select id="ai-mode" ...>
+              <option value="build">build</option>
+              <option value="fast">fast</option>
+              <option value="ac">ac</option>
               <option value="freestyle">freestyle</option>
-              <option value="ac">ac（全消し）</option>
             </select>
           </div>
         </label>
+        -->
 
         <label class="setting-row">
           <span>発火手を除外 <small>(構築練習用)</small></span>
