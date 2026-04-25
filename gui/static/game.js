@@ -82,7 +82,7 @@ function applyGravity(field) {
 function findGroups(field) {
   const visited = Array.from({ length: 13 }, () => Array(6).fill(false));
   const groups = [];
-  for (let row = 0; row < 13; row++) {
+  for (let row = 1; row < 13; row++) {
     for (let col = 0; col < 6; col++) {
       const c = field[row][col];
       if (!visited[row][col] && c !== '.' && c !== '#') {
@@ -94,7 +94,7 @@ function findGroups(field) {
           group.push([r, c2]);
           for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
             const nr = r + dr, nc = c2 + dc;
-            if (nr >= 0 && nr < 13 && nc >= 0 && nc < 6 &&
+            if (nr >= 1 && nr < 13 && nc >= 0 && nc < 6 &&
                 !visited[nr][nc] && field[nr][nc] === field[r][c2]) {
               visited[nr][nc] = true;
               q.push([nr, nc]);
@@ -173,13 +173,13 @@ function getGhostPositions(field, piece) {
     const row1 = lowestEmpty(field, x);
     if (row1 === -1) return null;
     const row2 = row1 - 1;
-    if (r === 'UP') {
+    if (r === 'DOWN') {
+      if (row2 < 0) return null;  // 軸ぷよが14段目: 常に無効
+      return [{ row: row1, col: x, color: c2 }, { row: row2, col: x, color: c1 }];
+    } else {  // UP
+      if (row2 < 0 && (game.row14 >> x) & 1) return null;  // 14段目が占有済み
       const cells = [{ row: row1, col: x, color: c1 }];
       if (row2 >= 0) cells.push({ row: row2, col: x, color: c2 });
-      return cells;
-    } else {
-      const cells = [{ row: row1, col: x, color: c2 }];
-      if (row2 >= 0) cells.push({ row: row2, col: x, color: c1 });
       return cells;
     }
   } else if (r === 'RIGHT') {
@@ -233,13 +233,16 @@ const game = {
   future: [],
   moveCount: 0,
   chainCount: 0,
-  totalGarbage: 0,
+  totalScore: 0,
+  row14: 0,
   animating: false,
   gameOver: false,
   aiEnabled: false,
   pendingAI: null,    // {candidates, forQueueIndex} or null
   aiQuerying: false,
   aiError: null,
+  session: 0,
+  aiPlaying: false,
 };
 
 // ─── RENDERING ───────────────────────────────────────────────────────────────
@@ -341,8 +344,8 @@ function renderQueue() {
 function renderStats() {
   document.getElementById('move-count').textContent = game.moveCount;
   document.getElementById('chain-count').textContent = game.chainCount;
-  const gEl = document.getElementById('garbage-count');
-  if (gEl) gEl.textContent = game.totalGarbage;
+  const sEl = document.getElementById('score-count');
+  if (sEl) sEl.textContent = game.totalScore.toLocaleString();
 }
 
 function renderAiStatus() {
@@ -379,18 +382,22 @@ function render() {
   if (undoBtn) undoBtn.disabled = game.history.length === 0 || game.animating;
   const redoBtn = document.getElementById('redo-btn');
   if (redoBtn) redoBtn.disabled = game.future.length === 0 || game.animating;
+  const aiDisabled = game.aiQuerying || game.aiPlaying || game.gameOver;
+  ['ask-ai-btn', 'play-ai-btn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = aiDisabled;
+  });
 }
 
 // ─── CHAIN ANIMATION ─────────────────────────────────────────────────────────
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-async function animateChains(steps, garbageSent) {
+async function animateChains(steps) {
   game.animating = true;
   const banner = document.getElementById('chain-banner');
 
   for (let i = 0; i < steps.length; i++) {
     const { popped, fieldAfter, stepScore } = steps[i];
-    const isLast = i === steps.length - 1;
 
     for (const key of popped) {
       const [r, c] = key.split(',').map(Number);
@@ -399,8 +406,7 @@ async function animateChains(steps, garbageSent) {
     }
 
     if (banner) {
-      const garbageLine = isLast && garbageSent > 0 ? `<br><span style="font-size:1.1rem">おじゃま ${garbageSent} 個分</span>` : '';
-      banner.innerHTML = `${i + 1}連鎖！${garbageLine}`;
+      banner.innerHTML = `${i + 1}連鎖！<br><span style="font-size:1.1rem">${stepScore.toLocaleString()}点</span>`;
       banner.classList.add('show');
     }
 
@@ -573,32 +579,45 @@ async function onAskAI() {
 }
 
 async function onPlayAI() {
-  if (game.animating || game.gameOver || !game.currentPiece) return;
-  let candidates = game.pendingAI?.candidates;
-
-  if (!candidates) {
-    const qi = game.queueIndex;
-    const queuePairs = game.fullQueue.slice(qi, qi + 4).map(p => [p[0], p[1]]);
-    if (queuePairs.length < 2) return;
-    try {
-      const result = await queryAI(game.field, queuePairs);
-      if (result.error) { alert('AI error: ' + result.error); return; }
-      candidates = result.candidates;
-      if (game.queueIndex === qi) {
-        game.pendingAI = { candidates, forQueueIndex: qi };
-      }
-    } catch (e) {
-      alert('AI error: ' + e.message);
-      return;
-    }
-  }
-
-  const best = candidates[0];
-  game.currentPiece = { ...game.currentPiece, x: best.x, r: best.r };
+  if (game.animating || game.gameOver || !game.currentPiece || game.aiPlaying || game.aiQuerying) return;
+  const session = game.session;
+  game.aiPlaying = true;
   render();
-  // Short delay so the player can see the piece move, then drop
-  await sleep(200);
-  dropCurrentPiece();
+
+  try {
+    let candidates = game.pendingAI?.candidates;
+
+    if (!candidates) {
+      const qi = game.queueIndex;
+      const queuePairs = game.fullQueue.slice(qi, qi + 4).map(p => [p[0], p[1]]);
+      if (queuePairs.length < 2) return;
+      try {
+        const result = await queryAI(game.field, queuePairs);
+        if (result.error) { alert('AI error: ' + result.error); return; }
+        candidates = result.candidates;
+        if (game.queueIndex === qi) {
+          game.pendingAI = { candidates, forQueueIndex: qi };
+        }
+      } catch (e) {
+        alert('AI error: ' + e.message);
+        return;
+      }
+    }
+
+    if (game.session !== session || !game.currentPiece) return;
+
+    const best = candidates[0];
+    game.currentPiece = { ...game.currentPiece, x: best.x, r: best.r };
+    render();
+    await sleep(200);
+
+    if (game.session !== session || !game.currentPiece) return;
+
+    await dropCurrentPiece();
+  } finally {
+    game.aiPlaying = false;
+    render();
+  }
 }
 
 // ─── GAME ACTIONS ─────────────────────────────────────────────────────────────
@@ -631,7 +650,8 @@ function saveToHistory() {
     queueIndex: game.queueIndex,
     moveCount: game.moveCount,
     chainCount: game.chainCount,
-    totalGarbage: game.totalGarbage,
+    totalScore: game.totalScore,
+    row14: game.row14,
   });
   game.future = [];
 }
@@ -645,6 +665,8 @@ async function dropCurrentPiece() {
   const ghost = getGhostPositions(game.field, game.currentPiece);
   if (!ghost) return; // can't place
 
+  const childGoes14th = r === 'UP' && lowestEmpty(game.field, x) === 0;
+
   // Save for undo
   saveToHistory();
 
@@ -655,6 +677,7 @@ async function dropCurrentPiece() {
   // Apply move
   const newField = applyMove(game.field, x, r, pair);
   game.field = newField;
+  if (childGoes14th) game.row14 |= (1 << x);
   game.currentPiece = null;
   game.moveCount++;
   game.queueIndex++;
@@ -663,12 +686,12 @@ async function dropCurrentPiece() {
   render();
 
   // Run chain simulation
-  const { steps, chainCount, garbageSent } = popChains(game.field);
-  game.chainCount += chainCount;
-  game.totalGarbage += garbageSent;
+  const { steps, chainCount, totalScore } = popChains(game.field);
+  game.chainCount = chainCount;
+  game.totalScore += totalScore;
 
   if (steps.length > 0) {
-    await animateChains(steps, garbageSent);
+    await animateChains(steps);
     renderStats();
   } else {
     game.field = game.field; // no-op, already set
@@ -721,13 +744,15 @@ function undoMove() {
     queueIndex: game.queueIndex,
     moveCount: game.moveCount,
     chainCount: game.chainCount,
-    totalGarbage: game.totalGarbage,
+    totalScore: game.totalScore,
+    row14: game.row14,
   });
   game.field = snap.field;
   game.queueIndex = snap.queueIndex;
   game.moveCount = snap.moveCount;
   game.chainCount = snap.chainCount;
-  game.totalGarbage = snap.totalGarbage;
+  game.totalScore = snap.totalScore;
+  game.row14 = snap.row14;
   game.pendingAI = null;
   game.gameOver = false;
   nextPiece();
@@ -741,13 +766,15 @@ function redoMove() {
     queueIndex: game.queueIndex,
     moveCount: game.moveCount,
     chainCount: game.chainCount,
-    totalGarbage: game.totalGarbage,
+    totalScore: game.totalScore,
+    row14: game.row14,
   });
   game.field = snap.field;
   game.queueIndex = snap.queueIndex;
   game.moveCount = snap.moveCount;
   game.chainCount = snap.chainCount;
-  game.totalGarbage = snap.totalGarbage;
+  game.totalScore = snap.totalScore;
+  game.row14 = snap.row14;
   game.pendingAI = null;
   game.gameOver = false;
   nextPiece();
@@ -762,12 +789,15 @@ function startNewGame(seed) {
   game.future = [];
   game.moveCount = 0;
   game.chainCount = 0;
-  game.totalGarbage = 0;
+  game.totalScore = 0;
+  game.row14 = 0;
   game.animating = false;
   game.gameOver = false;
   game.pendingAI = null;
   game.aiQuerying = false;
   game.aiError = null;
+  game.session++;
+  game.aiPlaying = false;
   nextPiece();
 }
 
@@ -937,6 +967,7 @@ function setupControls() {
         }
         break;
       case 'a': case 'A':
+        if (game.aiQuerying || game.aiPlaying) break;
         if (e.shiftKey) onPlayAI();
         else onAskAI();
         break;
