@@ -119,6 +119,14 @@
         </label>
 
         <label class="setting-row">
+          <span>AIタイムアウト <small>(秒)</small></span>
+          <div class="setting-control">
+            <input type="range" id="ai-timeout" min="5" max="120" step="5" value="10">
+            <span id="ai-timeout-val">10s</span>
+          </div>
+        </label>
+
+        <label class="setting-row">
           <span>悪手しきい値 <small>(0=警告なし)</small></span>
           <div class="setting-control">
             <input type="range" id="bad-threshold" min="0" max="95" step="5" value="75">

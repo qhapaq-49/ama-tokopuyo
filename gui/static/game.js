@@ -426,6 +426,7 @@ async function animateChains(steps) {
 const settings = {
   beamWidth: 500,
   beamDepth: 24,
+  aiTimeoutMs: 10000,
   badMoveThreshold: 0.75,
   weightsMode: 'build',
   noFire: false,
@@ -445,6 +446,13 @@ _aiWorker.onmessage = (e) => {
   else callbacks.resolve(result);
 };
 
+_aiWorker.onerror = (e) => {
+  for (const [id, callbacks] of _aiPending) {
+    _aiPending.delete(id);
+    callbacks.reject(new Error('AI worker error: ' + (e.message || 'unknown')));
+  }
+};
+
 async function queryAI(field, queuePairs) {
   const fieldStr = field.map(row => row.join(''));
   const input = JSON.stringify({
@@ -454,9 +462,14 @@ async function queryAI(field, queuePairs) {
   });
   return new Promise((resolve, reject) => {
     const id = _aiCallId++;
+    const timer = setTimeout(() => {
+      if (!_aiPending.has(id)) return;
+      _aiPending.delete(id);
+      reject(new Error('AI timeout'));
+    }, settings.aiTimeoutMs);
     _aiPending.set(id, {
-      resolve: (r) => resolve(JSON.parse(r)),
-      reject,
+      resolve: (r) => { clearTimeout(timer); resolve(JSON.parse(r)); },
+      reject:  (e) => { clearTimeout(timer); reject(e); },
     });
     _aiWorker.postMessage({ id, input });
   });
@@ -894,6 +907,14 @@ function setupControls() {
       focusGame();
     });
   });
+  const aiTimeoutEl = document.getElementById('ai-timeout');
+  if (aiTimeoutEl) {
+    aiTimeoutEl.addEventListener('input', () => {
+      settings.aiTimeoutMs = parseInt(aiTimeoutEl.value) * 1000;
+      document.getElementById('ai-timeout-val').textContent = aiTimeoutEl.value + 's';
+    });
+    aiTimeoutEl.addEventListener('change', focusGame);
+  }
   if (badThresholdEl) {
     badThresholdEl.addEventListener('input', () => {
       settings.badMoveThreshold = parseInt(badThresholdEl.value) / 100;
