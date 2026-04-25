@@ -432,6 +432,30 @@ const settings = {
   noFire: false,
 };
 
+// ─── KEY CONFIG ───────────────────────────────────────────────────────────────
+const DEFAULT_KEYCONFIG = {
+  left: 'ArrowLeft',
+  right: 'ArrowRight',
+  down: 'ArrowDown',
+  rotateCW: 'x',
+  rotateCCW: 'z',
+};
+
+let keyConfig = { ...DEFAULT_KEYCONFIG };
+try {
+  const saved = localStorage.getItem('keyConfig');
+  if (saved) keyConfig = { ...DEFAULT_KEYCONFIG, ...JSON.parse(saved) };
+} catch {}
+
+function saveKeyConfig() {
+  try { localStorage.setItem('keyConfig', JSON.stringify(keyConfig)); } catch {}
+}
+
+function keyLabel(key) {
+  const map = { ArrowLeft: '←', ArrowRight: '→', ArrowDown: '↓', ArrowUp: '↑', ' ': 'Space', Enter: 'Enter', Escape: 'Esc' };
+  return map[key] || key.toUpperCase();
+}
+
 // ─── AI (Web Worker) ─────────────────────────────────────────────────────────
 const _aiWorker = new Worker('ai-worker.js');
 const _aiPending = new Map();
@@ -944,6 +968,35 @@ function setupControls() {
     });
   }
 
+  // キーコンフィグUI初期化
+  let keyCaptureAction = null;
+  function updateKeyconfigButtons() {
+    document.querySelectorAll('.keyconfig-btn').forEach(btn => {
+      const action = btn.dataset.action;
+      btn.textContent = keyLabel(keyConfig[action]);
+      btn.classList.toggle('waiting', keyCaptureAction === action);
+    });
+  }
+  updateKeyconfigButtons();
+
+  document.querySelectorAll('.keyconfig-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      keyCaptureAction = btn.dataset.action;
+      updateKeyconfigButtons();
+    });
+  });
+
+  document.addEventListener('keydown', e => {
+    if (!keyCaptureAction) return;
+    // Ctrl/Meta/Shift/Alt単体は無視
+    if (['Control', 'Meta', 'Shift', 'Alt'].includes(e.key)) return;
+    e.preventDefault();
+    keyConfig[keyCaptureAction] = e.key;
+    saveKeyConfig();
+    keyCaptureAction = null;
+    updateKeyconfigButtons();
+  }, true); // capture phaseで処理してゲーム操作より先に捕捉
+
   document.getElementById('ask-ai-btn').addEventListener('click', onAskAI);
   document.getElementById('play-ai-btn').addEventListener('click', onPlayAI);
   document.getElementById('close-ai-btn').addEventListener('click', hideAIOverlay);
@@ -976,33 +1029,26 @@ function setupControls() {
 
     if (game.animating || game.gameOver) return;
 
-    switch (e.key) {
-      case 'ArrowLeft':
-        e.preventDefault();
-        if (game.currentPiece) { game.currentPiece = movePiece(game.currentPiece, 'LEFT'); render(); }
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        if (game.currentPiece) { game.currentPiece = movePiece(game.currentPiece, 'RIGHT'); render(); }
-        break;
-      case 'ArrowDown':
-      case ' ':
-        e.preventDefault();
-        dropCurrentPiece();
-        break;
-      case 'x': case 'X':
-        if (game.currentPiece) { game.currentPiece = rotatePiece(game.currentPiece, 'CW'); render(); }
-        break;
-      case 'z': case 'Z':
-        if (!e.ctrlKey && !e.metaKey) {
-          if (game.currentPiece) { game.currentPiece = rotatePiece(game.currentPiece, 'CCW'); render(); }
-        }
-        break;
-      case 'a': case 'A':
-        if (game.aiQuerying || game.aiPlaying) break;
-        if (e.shiftKey) onPlayAI();
-        else onAskAI();
-        break;
+    const k = e.key;
+    if (k === keyConfig.left) {
+      e.preventDefault();
+      if (game.currentPiece) { game.currentPiece = movePiece(game.currentPiece, 'LEFT'); render(); }
+    } else if (k === keyConfig.right) {
+      e.preventDefault();
+      if (game.currentPiece) { game.currentPiece = movePiece(game.currentPiece, 'RIGHT'); render(); }
+    } else if (k === keyConfig.down || k === ' ') {
+      e.preventDefault();
+      dropCurrentPiece();
+    } else if (k.toLowerCase() === keyConfig.rotateCW.toLowerCase()) {
+      if (game.currentPiece) { game.currentPiece = rotatePiece(game.currentPiece, 'CW'); render(); }
+    } else if (k.toLowerCase() === keyConfig.rotateCCW.toLowerCase()) {
+      if (!e.ctrlKey && !e.metaKey) {
+        if (game.currentPiece) { game.currentPiece = rotatePiece(game.currentPiece, 'CCW'); render(); }
+      }
+    } else if (k === 'a' || k === 'A') {
+      if (game.aiQuerying || game.aiPlaying) return;
+      if (e.shiftKey) onPlayAI();
+      else onAskAI();
     }
 
     if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
