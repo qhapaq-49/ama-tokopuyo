@@ -185,6 +185,28 @@ button.danger {
   font-weight: bold;
 }
 
+.preset-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.preset-btn {
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  background: #2a2a3a;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #ccc;
+  cursor: pointer;
+}
+
+.preset-btn:hover {
+  background: #3a3a5a;
+  border-color: #4cc9f0;
+  color: #fff;
+}
+
 details.panel > summary {
   list-style: none;
 }

@@ -424,8 +424,8 @@ async function animateChains(steps) {
 
 // ─── SETTINGS ────────────────────────────────────────────────────────────────
 const settings = {
-  beamWidth: 250,
-  beamDepth: 16,
+  beamWidth: 500,
+  beamDepth: 24,
   badMoveThreshold: 0.75,
   weightsMode: 'build',
   noFire: false,
@@ -883,6 +883,17 @@ function setupControls() {
     });
     beamDepthEl.addEventListener('change', focusGame);
   }
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const w = parseInt(btn.dataset.w);
+      const d = parseInt(btn.dataset.d);
+      settings.beamWidth = w;
+      settings.beamDepth = d;
+      if (beamWidthEl) { beamWidthEl.value = w; document.getElementById('beam-width-val').textContent = w; }
+      if (beamDepthEl) { beamDepthEl.value = d; document.getElementById('beam-depth-val').textContent = d; }
+      focusGame();
+    });
+  });
   if (badThresholdEl) {
     badThresholdEl.addEventListener('input', () => {
       settings.badMoveThreshold = parseInt(badThresholdEl.value) / 100;

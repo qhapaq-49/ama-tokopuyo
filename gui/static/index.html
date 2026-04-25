@@ -93,19 +93,28 @@
       <summary style="cursor:pointer;user-select:none"><h3 style="display:inline">設定</h3></summary>
       <div style="margin-top:8px;display:flex;flex-direction:column;gap:10px">
 
+        <div class="setting-row">
+          <span>強さプリセット</span>
+          <div class="preset-buttons">
+            <button class="preset-btn" data-w="250" data-d="16">速度重視</button>
+            <button class="preset-btn" data-w="500" data-d="24">標準</button>
+            <button class="preset-btn" data-w="500" data-d="32">強め</button>
+          </div>
+        </div>
+
         <label class="setting-row">
           <span>ビーム幅 <small>(精度・速度)</small></span>
           <div class="setting-control">
-            <input type="range" id="beam-width" min="50" max="500" step="50" value="250">
-            <span id="beam-width-val">250</span>
+            <input type="range" id="beam-width" min="50" max="1000" step="50" value="500">
+            <span id="beam-width-val">500</span>
           </div>
         </label>
 
         <label class="setting-row">
           <span>探索深さ <small>(手数先読み)</small></span>
           <div class="setting-control">
-            <input type="range" id="beam-depth" min="4" max="24" step="2" value="16">
-            <span id="beam-depth-val">16</span>
+            <input type="range" id="beam-depth" min="4" max="32" step="4" value="24">
+            <span id="beam-depth-val">24</span>
           </div>
         </label>
 
