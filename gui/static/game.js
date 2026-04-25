@@ -927,7 +927,8 @@ function focusGame() {
 
 function setupControls() {
   document.getElementById('new-game-btn').addEventListener('click', () => {
-    const seed = parseInt(document.getElementById('seed-input').value) || 42;
+    const seed = Math.floor(Math.random() * 65536);
+    document.getElementById('seed-input').value = seed;
     startNewGame(seed);
     focusGame();
   });
