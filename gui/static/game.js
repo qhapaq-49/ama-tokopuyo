@@ -20,10 +20,7 @@ function lcgNext(rand) {
   return Number((BigInt(rand) * 0x5D588B65n + 0x269EC3n) & 0xFFFFFFFFn);
 }
 
-function generateTsumoLCG(seed) {
-  let rand = seed & 0xFFFFFFFF;
-  const arr = Array.from({ length: 256 }, (_, i) => i % 4);
-  const sfl = [[15, 8, 28], [7, 16, 27], [3, 32, 26]];
+function shufflePool(arr, rand, sfl) {
   for (let k = 0; k < 3; k++) {
     for (let i = 0; i < sfl[k][0]; i++) {
       for (let j = 0; j < sfl[k][1]; j++) {
@@ -35,8 +32,25 @@ function generateTsumoLCG(seed) {
       }
     }
   }
-  // 128ペアに変換（ループ再生のため無限に取り出せるよう128で mod）
-  return Array.from({ length: 128 }, (_, i) => [COLORS[arr[i * 2]], COLORS[arr[i * 2 + 1]]]);
+  return rand;
+}
+
+function generateTsumoLCG(seed) {
+  let rand = seed & 0xFFFFFFFF;
+  const sfl = [[15, 8, 28], [7, 16, 27], [3, 32, 26]];
+
+  // Pool 1: 3色プール（初手2手を最大3色に抑えるため）
+  const arr1 = Array.from({ length: 256 }, (_, i) => i % 3);
+  rand = shufflePool(arr1, rand, sfl);
+
+  // Pool 2: 4色プール（通常ツモ）
+  const arr2 = Array.from({ length: 256 }, (_, i) => i % 4);
+  rand = shufflePool(arr2, rand, sfl);
+
+  // 初手2手（4要素）をPool1で上書き → 初手2手は必ず3色以内
+  arr2[0] = arr1[0]; arr2[1] = arr1[1]; arr2[2] = arr1[2]; arr2[3] = arr1[3];
+
+  return Array.from({ length: 128 }, (_, i) => [COLORS[arr2[i * 2]], COLORS[arr2[i * 2 + 1]]]);
 }
 
 function generateQueue(seed, count = 200) {
@@ -412,6 +426,8 @@ function render() {
   if (undoBtn) undoBtn.disabled = game.history.length === 0 || game.animating;
   const redoBtn = document.getElementById('redo-btn');
   if (redoBtn) redoBtn.disabled = game.future.length === 0 || game.animating;
+  const resetStartBtn = document.getElementById('reset-start-btn');
+  if (resetStartBtn) resetStartBtn.disabled = game.history.length === 0 || game.animating;
   const aiDisabled = game.aiQuerying || game.aiPlaying || game.gameOver;
   ['ask-ai-btn', 'play-ai-btn'].forEach(id => {
     const btn = document.getElementById(id);
@@ -825,6 +841,29 @@ function undoMove() {
   nextPiece();
 }
 
+function resetToStart() {
+  if (game.history.length === 0 || game.animating) return;
+  // undo連打と等価: currentをfutureに積み、historyを逆順にfutureへ移す
+  game.future.push({
+    field: cloneField(game.field), queueIndex: game.queueIndex,
+    moveCount: game.moveCount, chainCount: game.chainCount,
+    totalScore: game.totalScore, row14: game.row14,
+  });
+  while (game.history.length > 1) {
+    game.future.push(game.history.pop());
+  }
+  const snap = game.history.pop();
+  game.field = snap.field;
+  game.queueIndex = snap.queueIndex;
+  game.moveCount = snap.moveCount;
+  game.chainCount = snap.chainCount;
+  game.totalScore = snap.totalScore;
+  game.row14 = snap.row14;
+  game.pendingAI = null;
+  game.gameOver = false;
+  nextPiece();
+}
+
 function redoMove() {
   if (game.future.length === 0 || game.animating) return;
   const snap = game.future.pop();
@@ -890,6 +929,11 @@ function setupControls() {
   document.getElementById('new-game-btn').addEventListener('click', () => {
     const seed = parseInt(document.getElementById('seed-input').value) || 42;
     startNewGame(seed);
+    focusGame();
+  });
+
+  document.getElementById('reset-start-btn').addEventListener('click', () => {
+    resetToStart();
     focusGame();
   });
 
