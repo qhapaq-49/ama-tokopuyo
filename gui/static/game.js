@@ -13,7 +13,37 @@ function mulberry32(seed) {
 
 const COLORS = ['R', 'Y', 'G', 'B'];
 
+// ─── tsumo-rule.md準拠 ぷよぷよ20th LCGツモ生成 ────────────────────────────
+// seed 0〜65535 → 128ペアの固定ツモ列（ループ）
+// seed > 65535  → mulberry32によるランダム生成にフォールバック
+function lcgNext(rand) {
+  return Number((BigInt(rand) * 0x5D588B65n + 0x269EC3n) & 0xFFFFFFFFn);
+}
+
+function generateTsumoLCG(seed) {
+  let rand = seed & 0xFFFFFFFF;
+  const arr = Array.from({ length: 256 }, (_, i) => i % 4);
+  const sfl = [[15, 8, 28], [7, 16, 27], [3, 32, 26]];
+  for (let k = 0; k < 3; k++) {
+    for (let i = 0; i < sfl[k][0]; i++) {
+      for (let j = 0; j < sfl[k][1]; j++) {
+        rand = lcgNext(rand);
+        const n1 = (rand >>> sfl[k][2]) + i * 0x10;
+        rand = lcgNext(rand);
+        const n2 = (rand >>> sfl[k][2]) + (i + 1) * 0x10;
+        [arr[n1], arr[n2]] = [arr[n2], arr[n1]];
+      }
+    }
+  }
+  // 128ペアに変換（ループ再生のため無限に取り出せるよう128で mod）
+  return Array.from({ length: 128 }, (_, i) => [COLORS[arr[i * 2]], COLORS[arr[i * 2 + 1]]]);
+}
+
 function generateQueue(seed, count = 200) {
+  if (seed >= 0 && seed <= 65535) {
+    const base = generateTsumoLCG(seed);
+    return Array.from({ length: count }, (_, i) => base[i % 128]);
+  }
   const rng = mulberry32(seed);
   return Array.from({ length: count }, () => [
     COLORS[Math.floor(rng() * 4)],
@@ -1070,7 +1100,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Read seed from URL if present
   const params = new URLSearchParams(window.location.search);
   const urlSeed = params.get('seed');
-  const seed = urlSeed ? parseInt(urlSeed) : Math.floor(Math.random() * 0xFFFFFF);
+  const seed = urlSeed ? parseInt(urlSeed) : Math.floor(Math.random() * 65536);
   document.getElementById('seed-input').value = seed;
 
   startNewGame(seed);
