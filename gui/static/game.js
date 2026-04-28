@@ -267,6 +267,52 @@ function movePiece(piece, dir) {
   }
 }
 
+// ─── PUYOP URL ENCODING ──────────────────────────────────────────────────────
+const PUYOP_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ[]';
+
+function puyopFieldCellId(color) {
+  return { '.': 0, 'R': 1, 'G': 2, 'B': 3, 'Y': 4, '#': 6 }[color] ?? 0;
+}
+function puyopTsumoId(color) {
+  return { 'R': 0, 'G': 1, 'B': 2, 'Y': 3 }[color] ?? 0;
+}
+function directionInt(r) {
+  return { 'UP': 0, 'RIGHT': 1, 'DOWN': 2, 'LEFT': 3 }[r] ?? 0;
+}
+
+function encodePuyopField(field) {
+  let result = '';
+  let started = false;
+  for (let row = 0; row < 13; row++) {        // row 0 = y13 (top)
+    for (let col = 0; col <= 4; col += 2) {   // col 0,2,4 → x=1,3,5 pairs
+      const l = puyopFieldCellId(field[row][col]);
+      const r2 = puyopFieldCellId(field[row][col + 1]);
+      if (!started && l === 0 && r2 === 0) continue;
+      started = true;
+      result += PUYOP_CHARS[l * 8 + r2];
+    }
+  }
+  return result;
+}
+
+function encodePuyopMoves(moves) {
+  let result = '';
+  for (const { pair, x, r } of moves) {
+    const pairCode = puyopTsumoId(pair[0]) * 5 + puyopTsumoId(pair[1]);
+    const placementCode = ((x + 1) << 2) + directionInt(r);
+    const code = pairCode | (placementCode << 7);
+    result += PUYOP_CHARS[code & 0x3F];
+    result += PUYOP_CHARS[(code >> 6) & 0x3F];
+  }
+  return result;
+}
+
+function generatePuyopURL() {
+  const fieldStr = encodePuyopField(game.initialField);
+  const movesStr = encodePuyopMoves(game.moves.slice(0, game.queueIndex));
+  return `http://www.puyop.com/s/${fieldStr}_${movesStr}`;
+}
+
 // ─── GAME STATE ──────────────────────────────────────────────────────────────
 const game = {
   field: emptyField(),
@@ -287,6 +333,9 @@ const game = {
   aiError: null,
   session: 0,
   aiPlaying: false,
+  autoPlaying: false,
+  moves: [],          // [{pair, x, r}] for each placed piece
+  initialField: null, // field state at game start (for ぷよ譜URL)
 };
 
 // ─── RENDERING ───────────────────────────────────────────────────────────────
@@ -372,7 +421,11 @@ function renderQueue() {
   const el = document.getElementById('next-queue');
   if (!el) return;
   el.innerHTML = '';
-  for (let i = 1; i <= 2; i++) {
+  if (settings.nextVisible === 0) {
+    el.innerHTML = '<div style="color:#888;font-size:0.75rem">非表示</div>';
+    return;
+  }
+  for (let i = 1; i <= settings.nextVisible; i++) {
     const idx = game.queueIndex + i;
     if (idx >= game.fullQueue.length) break;
     const [c1, c2] = game.fullQueue[idx];
@@ -433,6 +486,11 @@ function render() {
     const btn = document.getElementById(id);
     if (btn) btn.disabled = aiDisabled;
   });
+  const autoBtn = document.getElementById('auto-play-btn');
+  if (autoBtn) {
+    autoBtn.textContent = game.autoPlaying ? '■ 停止' : 'オートプレイ';
+    autoBtn.disabled = game.gameOver && !game.autoPlaying;
+  }
 }
 
 // ─── CHAIN ANIMATION ─────────────────────────────────────────────────────────
@@ -476,6 +534,7 @@ const settings = {
   badMoveThreshold: 0.75,
   weightsMode: 'build',
   noFire: false,
+  nextVisible: 2,
 };
 
 // ─── KEY CONFIG ───────────────────────────────────────────────────────────────
@@ -485,6 +544,11 @@ const DEFAULT_KEYCONFIG = {
   down: 'ArrowDown',
   rotateCW: 'x',
   rotateCCW: 'z',
+  undo: 'ArrowUp',
+  askAI: 'a',
+  playAI: 'A',
+  newGame: '',
+  resetStart: '',
 };
 
 let keyConfig = { ...DEFAULT_KEYCONFIG };
@@ -497,9 +561,21 @@ function saveKeyConfig() {
   try { localStorage.setItem('keyConfig', JSON.stringify(keyConfig)); } catch {}
 }
 
-function keyLabel(key) {
-  const map = { ArrowLeft: '←', ArrowRight: '→', ArrowDown: '↓', ArrowUp: '↑', ' ': 'Space', Enter: 'Enter', Escape: 'Esc' };
-  return map[key] || key.toUpperCase();
+function keyLabel(binding) {
+  if (!binding) return '(未設定)';
+  const map = { ArrowLeft: '←', ArrowRight: '→', ArrowDown: '↓', ArrowUp: '↑', ' ': 'Space', Enter: 'Enter', Escape: 'Esc', Control: 'Ctrl', Alt: 'Alt' };
+  return binding.split('+').map(p => map[p] || p.toUpperCase()).join('+');
+}
+
+// binding形式: "ArrowLeft", "x", "A"(=Shift+a), "Control+z", "Alt+r"
+// Shiftはe.keyの大文字/小文字で表現するため別途チェックしない
+function matchesKey(e, binding) {
+  if (!binding) return false;
+  const parts = binding.split('+');
+  const mainKey = parts[parts.length - 1];
+  const needCtrl = parts.includes('Control');
+  const needAlt = parts.includes('Alt');
+  return e.key === mainKey && e.ctrlKey === needCtrl && e.altKey === needAlt;
 }
 
 // ─── AI (Web Worker) ─────────────────────────────────────────────────────────
@@ -703,6 +779,56 @@ async function onPlayAI() {
   }
 }
 
+async function onAutoPlay() {
+  if (game.autoPlaying) {
+    game.autoPlaying = false;
+    render();
+    return;
+  }
+  if (game.gameOver || game.animating || game.aiPlaying) return;
+  game.autoPlaying = true;
+  render();
+  const session = game.session;
+
+  while (game.autoPlaying && !game.gameOver && game.session === session) {
+    if (game.animating || !game.currentPiece) { await sleep(50); continue; }
+
+    game.aiPlaying = true;
+    render();
+    try {
+      let candidates = game.pendingAI?.candidates;
+      if (!candidates) {
+        const qi = game.queueIndex;
+        const queuePairs = game.fullQueue.slice(qi, qi + 4).map(p => [p[0], p[1]]);
+        if (queuePairs.length < 2) break;
+        const result = await queryAI(game.field, queuePairs).catch(() => null);
+        if (!result || result.error) break;
+        candidates = result.candidates;
+        if (game.queueIndex === qi) game.pendingAI = { candidates, forQueueIndex: qi };
+      }
+      if (game.session !== session || !game.currentPiece) break;
+      const best = candidates[0];
+      game.currentPiece = { ...game.currentPiece, x: best.x, r: best.r };
+      render();
+      await sleep(150);
+      if (game.session !== session || !game.currentPiece) break;
+      await dropCurrentPiece();
+    } finally {
+      game.aiPlaying = false;
+    }
+
+    if (game.session !== session) break;
+    // 悪手ダイアログが開いたら停止
+    const badOverlay = document.getElementById('bad-move-overlay');
+    if (badOverlay && badOverlay.classList.contains('active')) { game.autoPlaying = false; break; }
+    await sleep(200);
+  }
+
+  game.autoPlaying = false;
+  game.aiPlaying = false;
+  render();
+}
+
 // ─── GAME ACTIONS ─────────────────────────────────────────────────────────────
 function nextPiece() {
   if (game.queueIndex >= game.fullQueue.length) {
@@ -763,6 +889,7 @@ async function dropCurrentPiece() {
   if (childGoes14th) game.row14 |= (1 << x);
   game.currentPiece = null;
   game.moveCount++;
+  game.moves[prevQI] = { pair, x, r };  // ぷよ譜用
   game.queueIndex++;
   game.pendingAI = null;
 
@@ -821,6 +948,9 @@ function showBadMoveAlert(info, humanX, humanR) {
 
 function undoMove() {
   if (game.history.length === 0 || game.animating) return;
+  // AI思考中でもアンドゥできるようaiQueryingをリセット（古い結果はqueueIndexチェックで弾かれる）
+  game.aiQuerying = false;
+  game.aiError = null;
   const snap = game.history.pop();
   game.future.push({
     field: cloneField(game.field),
@@ -904,6 +1034,9 @@ function startNewGame(seed) {
   game.aiError = null;
   game.session++;
   game.aiPlaying = false;
+  game.autoPlaying = false;
+  game.moves = [];
+  game.initialField = cloneField(game.field);
   nextPiece();
 }
 
@@ -1063,10 +1196,14 @@ function setupControls() {
 
   document.addEventListener('keydown', e => {
     if (!keyCaptureAction) return;
-    // Ctrl/Meta/Shift/Alt単体は無視
     if (['Control', 'Meta', 'Shift', 'Alt'].includes(e.key)) return;
     e.preventDefault();
-    keyConfig[keyCaptureAction] = e.key;
+    // Ctrl/AltをプレフィックスとしてBinding文字列に含める。Shiftはe.keyの大文字で表現
+    const parts = [];
+    if (e.ctrlKey) parts.push('Control');
+    if (e.altKey) parts.push('Alt');
+    parts.push(e.key);
+    keyConfig[keyCaptureAction] = parts.join('+');
     saveKeyConfig();
     keyCaptureAction = null;
     updateKeyconfigButtons();
@@ -1075,6 +1212,30 @@ function setupControls() {
   document.getElementById('ask-ai-btn').addEventListener('click', onAskAI);
   document.getElementById('play-ai-btn').addEventListener('click', onPlayAI);
   document.getElementById('close-ai-btn').addEventListener('click', hideAIOverlay);
+  document.getElementById('auto-play-btn').addEventListener('click', onAutoPlay);
+
+  document.getElementById('puyop-url-btn').addEventListener('click', () => {
+    if (game.queueIndex === 0) { alert('まだ手が置かれていません'); return; }
+    const url = generatePuyopURL();
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById('puyop-url-btn');
+      const orig = btn.textContent;
+      btn.textContent = 'コピー完了！';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    }).catch(() => {
+      prompt('ぷよ譜URL:', url);
+    });
+    focusGame();
+  });
+
+  const nextVisibleEl = document.getElementById('next-visible');
+  if (nextVisibleEl) {
+    nextVisibleEl.addEventListener('change', () => {
+      settings.nextVisible = parseInt(nextVisibleEl.value);
+      renderQueue();
+      focusGame();
+    });
+  }
 
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;
@@ -1092,47 +1253,57 @@ function setupControls() {
       return;
     }
 
-    // AI overlay が開いているときはEscで閉じる
+    // AI overlay が開いているときはAsk AIキーまたはEsc/Enterで閉じる
     const aiOverlay = document.getElementById('ai-overlay');
     if (aiOverlay && aiOverlay.classList.contains('active')) {
-      if (e.key === 'Escape' || e.key === 'Enter') {
+      if (e.key === 'Escape' || e.key === 'Enter' || matchesKey(e, keyConfig.askAI)) {
         e.preventDefault();
         hideAIOverlay();
       }
       return;
     }
 
-    if (game.animating || game.gameOver) return;
-
-    const k = e.key;
-    if (k === keyConfig.left) {
-      e.preventDefault();
-      if (game.currentPiece) { game.currentPiece = movePiece(game.currentPiece, 'LEFT'); render(); }
-    } else if (k === keyConfig.right) {
-      e.preventDefault();
-      if (game.currentPiece) { game.currentPiece = movePiece(game.currentPiece, 'RIGHT'); render(); }
-    } else if (k === keyConfig.down || k === ' ') {
-      e.preventDefault();
-      dropCurrentPiece();
-    } else if (k.toLowerCase() === keyConfig.rotateCW.toLowerCase()) {
-      if (game.currentPiece) { game.currentPiece = rotatePiece(game.currentPiece, 'CW'); render(); }
-    } else if (k.toLowerCase() === keyConfig.rotateCCW.toLowerCase()) {
-      if (!e.ctrlKey && !e.metaKey) {
-        if (game.currentPiece) { game.currentPiece = rotatePiece(game.currentPiece, 'CCW'); render(); }
-      }
-    } else if (k === 'a' || k === 'A') {
-      if (game.aiQuerying || game.aiPlaying) return;
-      if (e.shiftKey) onPlayAI();
-      else onAskAI();
-    }
-
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+    // Undo/Redo（アニメーション中でも操作できるよう先に処理）
+    if (matchesKey(e, keyConfig.undo) || ((e.ctrlKey || e.metaKey) && e.key === 'z')) {
       e.preventDefault();
       undoMove();
+      return;
     }
     if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
       e.preventDefault();
       redoMove();
+      return;
+    }
+
+    if (game.animating || game.gameOver) return;
+
+    if (matchesKey(e, keyConfig.left)) {
+      e.preventDefault();
+      if (game.currentPiece) { game.currentPiece = movePiece(game.currentPiece, 'LEFT'); render(); }
+    } else if (matchesKey(e, keyConfig.right)) {
+      e.preventDefault();
+      if (game.currentPiece) { game.currentPiece = movePiece(game.currentPiece, 'RIGHT'); render(); }
+    } else if (matchesKey(e, keyConfig.down) || e.key === ' ') {
+      e.preventDefault();
+      dropCurrentPiece();
+    } else if (matchesKey(e, keyConfig.rotateCW)) {
+      e.preventDefault();
+      if (game.currentPiece) { game.currentPiece = rotatePiece(game.currentPiece, 'CW'); render(); }
+    } else if (matchesKey(e, keyConfig.rotateCCW)) {
+      e.preventDefault();
+      if (game.currentPiece) { game.currentPiece = rotatePiece(game.currentPiece, 'CCW'); render(); }
+    } else if (matchesKey(e, keyConfig.askAI)) {
+      e.preventDefault();
+      if (!game.aiQuerying && !game.aiPlaying) onAskAI();
+    } else if (matchesKey(e, keyConfig.playAI)) {
+      e.preventDefault();
+      if (!game.aiQuerying && !game.aiPlaying) onPlayAI();
+    } else if (keyConfig.newGame && matchesKey(e, keyConfig.newGame)) {
+      e.preventDefault();
+      document.getElementById('new-game-btn').click();
+    } else if (keyConfig.resetStart && matchesKey(e, keyConfig.resetStart)) {
+      e.preventDefault();
+      document.getElementById('reset-start-btn').click();
     }
   });
 }

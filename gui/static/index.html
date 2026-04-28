@@ -74,6 +74,8 @@
     <!-- Ask AI -->
     <button id="ask-ai-btn" class="primary" style="width:100%">Ask AI (A)</button>
     <button id="play-ai-btn" style="width:100%">AI最善手を打つ (Shift+A)</button>
+    <button id="auto-play-btn" style="width:100%">オートプレイ</button>
+    <button id="puyop-url-btn" style="width:100%">ぷよ譜URLをコピー</button>
 
     <!-- Undo / Redo -->
     <div class="undo-row">
@@ -159,14 +161,30 @@
           </div>
         </label>
 
+        <label class="setting-row">
+          <span>NEXT表示 <small>(ネクネク)</small></span>
+          <div class="setting-control">
+            <select id="next-visible" style="background:#2d2d4e;color:#eee;border:1px solid #555;padding:3px 6px;border-radius:4px">
+              <option value="2">ネクネクあり（2つ）</option>
+              <option value="1">ネクのみ（1つ）</option>
+              <option value="0">非表示</option>
+            </select>
+          </div>
+        </label>
+
         <div class="setting-row">
-          <span>キー設定 <small>(ボタンを押して変更)</small></span>
+          <span>キー設定 <small>(ボタンを押して変更・Ctrl/Alt同時押し可)</small></span>
           <div class="keyconfig-grid">
-            <span>左</span>      <button class="keyconfig-btn" data-action="left"></button>
-            <span>右</span>      <button class="keyconfig-btn" data-action="right"></button>
-            <span>落とす</span>  <button class="keyconfig-btn" data-action="down"></button>
-            <span>右回転</span>  <button class="keyconfig-btn" data-action="rotateCW"></button>
-            <span>左回転</span>  <button class="keyconfig-btn" data-action="rotateCCW"></button>
+            <span>左</span>        <button class="keyconfig-btn" data-action="left"></button>
+            <span>右</span>        <button class="keyconfig-btn" data-action="right"></button>
+            <span>落とす</span>    <button class="keyconfig-btn" data-action="down"></button>
+            <span>右回転</span>    <button class="keyconfig-btn" data-action="rotateCW"></button>
+            <span>左回転</span>    <button class="keyconfig-btn" data-action="rotateCCW"></button>
+            <span>アンドゥ</span>  <button class="keyconfig-btn" data-action="undo"></button>
+            <span>Ask AI</span>    <button class="keyconfig-btn" data-action="askAI"></button>
+            <span>AI最善手</span>  <button class="keyconfig-btn" data-action="playAI"></button>
+            <span>新ゲーム</span>  <button class="keyconfig-btn" data-action="newGame"></button>
+            <span>初手に戻る</span><button class="keyconfig-btn" data-action="resetStart"></button>
           </div>
         </div>
 
@@ -190,6 +208,7 @@
     <button onclick="document.getElementById('redo-btn').click()">Redo</button>
     <button class="primary" onclick="document.getElementById('ask-ai-btn').click()">Ask AI</button>
     <button onclick="document.getElementById('play-ai-btn').click()">AI最善手</button>
+    <button onclick="document.getElementById('auto-play-btn').click()">オート</button>
   </div>
 </div>
 
@@ -200,7 +219,7 @@
     <p style="font-size:0.8rem;color:#aaa">現在の局面に対するAIの推奨手 (上位5件)</p>
     <ul id="ai-candidates" class="candidate-list"></ul>
     <div class="modal-buttons">
-      <button id="close-ai-btn">閉じる</button>
+      <button id="close-ai-btn">閉じる [A / Enter / Esc]</button>
     </div>
   </div>
 </div>
