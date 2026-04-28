@@ -772,6 +772,7 @@ async function onPlayAI() {
     }
 
     if (game.session !== session || !game.currentPiece) return;
+    if (!candidates || candidates.length === 0) return;
 
     const best = candidates[0];
     game.currentPiece = { ...game.currentPiece, x: best.x, r: best.r };
@@ -815,6 +816,7 @@ async function onAutoPlay() {
         if (game.queueIndex === qi) game.pendingAI = { candidates, forQueueIndex: qi };
       }
       if (game.session !== session || !game.currentPiece) break;
+      if (!candidates || candidates.length === 0) break;
       const best = candidates[0];
       game.currentPiece = { ...game.currentPiece, x: best.x, r: best.r };
       render();
