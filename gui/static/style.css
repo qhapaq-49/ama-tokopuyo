@@ -14,9 +14,24 @@ body {
 
 h1 {
   font-size: 1.4rem;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   color: #e0aaff;
   letter-spacing: 2px;
+}
+
+.credit {
+  font-size: 0.7rem;
+  color: #888;
+  margin-bottom: 10px;
+}
+
+.credit a {
+  color: #a080d0;
+  text-decoration: none;
+}
+
+.credit a:hover {
+  text-decoration: underline;
 }
 
 .controls-bar {
