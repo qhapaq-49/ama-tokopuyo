@@ -554,7 +554,7 @@ const DEFAULT_KEYCONFIG = {
   rotateCCW: 'z',
   undo: 'ArrowUp',
   askAI: 'a',
-  playAI: 'A',
+  playAI: 's',
   newGame: '',
   resetStart: '',
 };
