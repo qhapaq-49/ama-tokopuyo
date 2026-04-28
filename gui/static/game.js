@@ -336,6 +336,7 @@ const game = {
   autoPlaying: false,
   moves: [],          // [{pair, x, r}] for each placed piece
   initialField: null, // field state at game start (for ぷよ譜URL)
+  garbageMode: false,
 };
 
 // ─── RENDERING ───────────────────────────────────────────────────────────────
@@ -491,6 +492,13 @@ function render() {
     autoBtn.textContent = game.autoPlaying ? '■ 停止' : 'オートプレイ';
     autoBtn.disabled = game.gameOver && !game.autoPlaying;
   }
+  const garbageBtn = document.getElementById('garbage-mode-btn');
+  if (garbageBtn) {
+    garbageBtn.textContent = game.garbageMode ? '■ おじゃま置きON' : 'おじゃま置きモード';
+    garbageBtn.classList.toggle('active-mode', game.garbageMode);
+  }
+  const fieldEl = document.getElementById('field');
+  if (fieldEl) fieldEl.classList.toggle('garbage-mode', game.garbageMode);
 }
 
 // ─── CHAIN ANIMATION ─────────────────────────────────────────────────────────
@@ -1035,12 +1043,38 @@ function startNewGame(seed) {
   game.session++;
   game.aiPlaying = false;
   game.autoPlaying = false;
+  game.garbageMode = false;
   game.moves = [];
   game.initialField = cloneField(game.field);
   nextPiece();
 }
 
 // ─── DOM SETUP ───────────────────────────────────────────────────────────────
+function toggleGarbageAt(row, col) {
+  if (game.animating) return;
+  const cell = game.field[row][col];
+  if (cell !== '.' && cell !== '#') return; // 色ぷよは触らない
+  const f = cloneField(game.field);
+  f[row][col] = cell === '.' ? '#' : '.';
+  game.field = f;
+  game.pendingAI = null;
+  render();
+}
+
+// N個のおじゃまを列0→5の順に落とす（重力適用）
+function dropGarbageN(n) {
+  if (game.animating) return;
+  let f = cloneField(game.field);
+  for (let i = 0; i < n; i++) {
+    const col = i % 6;
+    const row = lowestEmpty(f, col);
+    if (row !== -1) f[row][col] = '#';
+  }
+  game.field = f;
+  game.pendingAI = null;
+  render();
+}
+
 function buildField() {
   const fieldEl = document.getElementById('field');
   fieldEl.innerHTML = '';
@@ -1049,6 +1083,9 @@ function buildField() {
       const div = document.createElement('div');
       div.id = `c${row}_${col}`;
       div.className = 'cell cell-empty';
+      div.addEventListener('click', () => {
+        if (game.garbageMode) toggleGarbageAt(row, col);
+      });
       fieldEl.appendChild(div);
     }
   }
@@ -1213,6 +1250,18 @@ function setupControls() {
   document.getElementById('play-ai-btn').addEventListener('click', onPlayAI);
   document.getElementById('close-ai-btn').addEventListener('click', hideAIOverlay);
   document.getElementById('auto-play-btn').addEventListener('click', onAutoPlay);
+
+  document.getElementById('garbage-mode-btn').addEventListener('click', () => {
+    game.garbageMode = !game.garbageMode;
+    render();
+    focusGame();
+  });
+
+  document.getElementById('drop-garbage-btn').addEventListener('click', () => {
+    const n = parseInt(document.getElementById('garbage-count').value) || 6;
+    dropGarbageN(n);
+    focusGame();
+  });
 
   document.getElementById('puyop-url-btn').addEventListener('click', () => {
     if (game.queueIndex === 0) { alert('まだ手が置かれていません'); return; }

@@ -151,6 +151,17 @@ button.danger {
 /* AI highlight on field */
 .cell-ai-best { box-shadow: 0 0 10px 3px gold; }
 
+/* Garbage edit mode */
+#field.garbage-mode { cursor: crosshair; border-color: #6bcb77; }
+#field.garbage-mode .cell { cursor: crosshair; }
+
+button.active-mode {
+  background: #2a5a2a;
+  border-color: #6bcb77;
+  color: #6bcb77;
+}
+button.active-mode:hover:not(:disabled) { background: #3a7a3a; }
+
 /* ─── SIDEBAR ─────────────────────────────────── */
 .sidebar {
   display: flex;
