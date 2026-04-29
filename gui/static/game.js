@@ -356,6 +356,32 @@ function renderField() {
     for (const g of ghost) ghostSet[`${g.row},${g.col}`] = g.color;
   }
 
+  // Entry rows: show current piece at its current position
+  const entryColors = {}; // `${row},${col}` → color
+  if (game.currentPiece && !game.animating) {
+    const { x, r, pair } = game.currentPiece;
+    const [c1, c2] = pair;
+    if (r === 'UP')         { entryColors['0,' + x] = c2; entryColors['1,' + x] = c1; }
+    else if (r === 'DOWN')  { entryColors['0,' + x] = c1; entryColors['1,' + x] = c2; }
+    else if (r === 'RIGHT') { entryColors['1,' + x] = c1; entryColors['1,' + (x + 1)] = c2; }
+    else                    { entryColors['1,' + x] = c1; entryColors['1,' + (x - 1)] = c2; }
+  }
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 6; col++) {
+      const el = document.getElementById(`ce${row}_${col}`);
+      if (!el) continue;
+      const color = entryColors[`${row},${col}`];
+      const base = row === 1 ? 'cell cell-entry cell-entry-bottom' : 'cell cell-entry';
+      if (color) {
+        el.className = base + ` cell-${color}`;
+        el.textContent = color;
+      } else {
+        el.className = base;
+        el.textContent = '';
+      }
+    }
+  }
+
   for (let row = 0; row < 13; row++) {
     for (let col = 0; col < 6; col++) {
       const el = document.getElementById(`c${row}_${col}`);
@@ -651,7 +677,7 @@ async function startAIQuery() {
     game.aiError = e.message;
   } finally {
     game.aiQuerying = false;
-    renderAiStatus();
+    render();
   }
 }
 
@@ -682,6 +708,17 @@ function checkBadMove(candidates, x, r, pair) {
   return null;
 }
 
+function highlightAICandidate(c) {
+  document.querySelectorAll('.cell-ai-best').forEach(el => el.classList.remove('cell-ai-best'));
+  const ghost = getGhostPositions(game.field, { x: c.x, r: c.r, pair: game.fullQueue[game.queueIndex] });
+  if (ghost) {
+    for (const g of ghost) {
+      const el = document.getElementById(`c${g.row}_${g.col}`);
+      if (el) el.classList.add('cell-ai-best');
+    }
+  }
+}
+
 function showAIOverlay(candidates) {
   const overlay = document.getElementById('ai-overlay');
   const list = document.getElementById('ai-candidates');
@@ -693,26 +730,27 @@ function showAIOverlay(candidates) {
     const c = top[i];
     const li = document.createElement('li');
     li.className = i === 0 ? 'best' : '';
+    li.style.cursor = 'pointer';
+    li.title = 'クリックでこの配置に移動';
     li.innerHTML = `
       <div class="rank-badge ${i === 0 ? 'gold' : ''}">${i + 1}</div>
       <div class="cand-detail">
         <strong>x=${c.x + 1}  ${c.r}</strong>
         <div class="cand-score">score: ${c.expected_score.toLocaleString()}</div>
       </div>`;
+    li.addEventListener('mouseenter', () => highlightAICandidate(c));
+    li.addEventListener('mouseleave', () => highlightAICandidate(top[0]));
+    li.addEventListener('click', () => {
+      if (game.currentPiece) {
+        game.currentPiece = { ...game.currentPiece, x: c.x, r: c.r };
+        hideAIOverlay();
+      }
+    });
     list.appendChild(li);
   }
 
   overlay.classList.add('active');
-
-  // Highlight best on field
-  const best = candidates[0];
-  const ghost = getGhostPositions(game.field, { x: best.x, r: best.r, pair: game.fullQueue[game.queueIndex] });
-  if (ghost) {
-    for (const g of ghost) {
-      const el = document.getElementById(`c${g.row}_${g.col}`);
-      if (el) el.classList.add('cell-ai-best');
-    }
-  }
+  highlightAICandidate(top[0]);
 }
 
 function hideAIOverlay() {
@@ -961,6 +999,7 @@ function undoMove() {
   // AI思考中でもアンドゥできるようaiQueryingをリセット（古い結果はqueueIndexチェックで弾かれる）
   game.aiQuerying = false;
   game.aiError = null;
+  const prevPendingAI = game.pendingAI;
   const snap = game.history.pop();
   game.future.push({
     field: cloneField(game.field),
@@ -976,7 +1015,7 @@ function undoMove() {
   game.chainCount = snap.chainCount;
   game.totalScore = snap.totalScore;
   game.row14 = snap.row14;
-  game.pendingAI = null;
+  game.pendingAI = (prevPendingAI?.forQueueIndex === snap.queueIndex) ? prevPendingAI : null;
   game.gameOver = false;
   nextPiece();
 }
@@ -1080,6 +1119,14 @@ function dropGarbageN(n) {
 function buildField() {
   const fieldEl = document.getElementById('field');
   fieldEl.innerHTML = '';
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 6; col++) {
+      const div = document.createElement('div');
+      div.id = `ce${row}_${col}`;
+      div.className = row === 1 ? 'cell cell-entry cell-entry-bottom' : 'cell cell-entry';
+      fieldEl.appendChild(div);
+    }
+  }
   for (let row = 0; row < 13; row++) {
     for (let col = 0; col < 6; col++) {
       const div = document.createElement('div');
