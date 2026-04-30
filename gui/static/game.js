@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD_DATE = '2026-04-30 21:36:14';
+const BUILD_DATE = '2026-04-30 23:20:57';
 
 // ─── PRNG ────────────────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -621,6 +621,16 @@ let _aiWorkerFatalError = null;
 const _aiWorker = new Worker('ai-worker.js');
 const _aiPending = new Map();
 let _aiCallId = 0;
+
+async function resetSWAndReload() {
+  // SWが壊れた状態でスタックしているとき（SW更新後にiOSがタブ復元した等）の回復手段
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const reg of regs) await reg.unregister();
+  }
+  sessionStorage.clear();
+  location.reload();
+}
 
 function _showAIFatalError(msg) {
   _aiWorkerFatalError = msg;
@@ -1445,9 +1455,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const iosNote = isIOS
-      ? 'iOS Safariではサービスワーカー経由のクロスオリジン分離が正しく動作しない既知の問題があります。' +
-        'PCブラウザ（Chrome/Firefox）を試してください。'
-      : 'ページをリロード（Ctrl+Shift+R）すると解決することがあります。';
+      ? '「SW リセット」ボタンを試してください。それでも直らない場合はiOS Safariの既知の制限の可能性があります。'
+      : '「SW リセット」またはCtrl+Shift+Rリロードを試してください。';
     _showAIFatalError(
       'AIエンジンが起動できません: クロスオリジン分離が無効です（SharedArrayBuffer 利用不可）。' +
       iosNote +
