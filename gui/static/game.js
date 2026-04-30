@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD_DATE = '2026-04-30 14:54:42';
+const BUILD_DATE = '2026-04-30 21:36:14';
 
 // ─── PRNG ────────────────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -1442,9 +1442,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // SharedArrayBuffer / crossOriginIsolated チェック
   if (!self.crossOriginIsolated || typeof SharedArrayBuffer === 'undefined') {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const iosNote = isIOS
+      ? 'iOS Safariではサービスワーカー経由のクロスオリジン分離が正しく動作しない既知の問題があります。' +
+        'PCブラウザ（Chrome/Firefox）を試してください。'
+      : 'ページをリロード（Ctrl+Shift+R）すると解決することがあります。';
     _showAIFatalError(
-      'クロスオリジン分離が無効です（SharedArrayBuffer 利用不可）。' +
-      'ページをリロードすると解決することがあります。' +
+      'AIエンジンが起動できません: クロスオリジン分離が無効です（SharedArrayBuffer 利用不可）。' +
+      iosNote +
       ' [crossOriginIsolated=' + self.crossOriginIsolated + ']'
     );
   }
