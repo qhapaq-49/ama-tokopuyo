@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD_DATE = '2026-04-30';
+const BUILD_DATE = '2026-04-30 14:54';
 
 // ─── PRNG ────────────────────────────────────────────────────────────────────
 function mulberry32(seed) {
