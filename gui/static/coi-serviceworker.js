@@ -10,6 +10,12 @@ if (typeof window === 'undefined') {
   self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 
   self.addEventListener('fetch', function (event) {
+    // クロスオリジンリクエストはブラウザに任せる（GTM等の外部リソース）
+    // COOP/COEPはメインドキュメント（同一オリジン）にのみ付ければ十分
+    if (new URL(event.request.url).origin !== self.location.origin) {
+      return;
+    }
+
     if (event.request.cache === 'only-if-cached' &&
         event.request.mode !== 'same-origin') {
       return;

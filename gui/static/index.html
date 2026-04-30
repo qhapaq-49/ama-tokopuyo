@@ -17,7 +17,13 @@
 <body>
 
 <h1>とこぷよAI</h1>
-<p class="credit">AI engine: <a href="https://github.com/citrus610/ama" target="_blank" rel="noopener">ama</a> by citrus610</p>
+<p class="credit">AI engine: <a href="https://github.com/citrus610/ama" target="_blank" rel="noopener">ama</a> by citrus610 · last updated: <span id="build-date">?</span></p>
+
+<!-- AIエラー時のリロードバナー -->
+<div id="ai-fatal-banner" style="display:none;align-items:center;gap:12px;background:#4a1010;border:1px solid #c44;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:0.85rem">
+  <span style="flex:1;color:#faa">⚠️ AIが動作していません。ブラウザをリロードしてください。<br><small id="ai-fatal-msg" style="color:#f88;word-break:break-all"></small></span>
+  <button onclick="location.reload()" style="white-space:nowrap">リロード</button>
+</div>
 
 <div class="controls-bar">
   <label>シード: <input type="number" id="seed-input" value="42" min="0" max="65535"></label>

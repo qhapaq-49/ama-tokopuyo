@@ -1,5 +1,7 @@
 'use strict';
 
+const BUILD_DATE = '2026-04-30';
+
 // ─── PRNG ────────────────────────────────────────────────────────────────────
 function mulberry32(seed) {
   let s = seed >>> 0;
@@ -479,7 +481,7 @@ function renderAiStatus() {
     el.textContent = 'AI思考中...';
     el.className = 'ai-status querying';
   } else if (game.aiError) {
-    el.textContent = 'AIエラー';
+    el.textContent = 'AIエラー: ' + game.aiError;
     el.className = 'ai-status error';
   } else if (game.pendingAI) {
     el.textContent = 'AI準備完了';
@@ -613,11 +615,35 @@ function matchesKey(e, binding) {
 }
 
 // ─── AI (Web Worker) ─────────────────────────────────────────────────────────
+let _aiWorkerReady = false;
+let _aiWorkerFatalError = null;
+
 const _aiWorker = new Worker('ai-worker.js');
 const _aiPending = new Map();
 let _aiCallId = 0;
 
+function _showAIFatalError(msg) {
+  _aiWorkerFatalError = msg;
+  const el = document.getElementById('ai-fatal-banner');
+  if (el) {
+    el.querySelector('#ai-fatal-msg').textContent = msg;
+    el.style.display = 'flex';
+  }
+}
+
 _aiWorker.onmessage = (e) => {
+  if (e.data.type === 'ready') {
+    _aiWorkerReady = true;
+    return;
+  }
+  if (e.data.type === 'init_error') {
+    _showAIFatalError('AIエンジン初期化失敗: ' + e.data.message);
+    for (const [id, callbacks] of _aiPending) {
+      _aiPending.delete(id);
+      callbacks.reject(new Error(e.data.message));
+    }
+    return;
+  }
   const { id, result, error } = e.data;
   const callbacks = _aiPending.get(id);
   if (!callbacks) return;
@@ -627,9 +653,11 @@ _aiWorker.onmessage = (e) => {
 };
 
 _aiWorker.onerror = (e) => {
+  const msg = e.message || 'unknown';
+  _showAIFatalError('AIワーカーエラー: ' + msg);
   for (const [id, callbacks] of _aiPending) {
     _aiPending.delete(id);
-    callbacks.reject(new Error('AI worker error: ' + (e.message || 'unknown')));
+    callbacks.reject(new Error('AI worker error: ' + msg));
   }
 };
 
@@ -1408,6 +1436,19 @@ function setupControls() {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // last updated表示
+  const bdEl = document.getElementById('build-date');
+  if (bdEl) bdEl.textContent = BUILD_DATE;
+
+  // SharedArrayBuffer / crossOriginIsolated チェック
+  if (!self.crossOriginIsolated || typeof SharedArrayBuffer === 'undefined') {
+    _showAIFatalError(
+      'クロスオリジン分離が無効です（SharedArrayBuffer 利用不可）。' +
+      'ページをリロードすると解決することがあります。' +
+      ' [crossOriginIsolated=' + self.crossOriginIsolated + ']'
+    );
+  }
+
   buildField();
   setupControls();
 

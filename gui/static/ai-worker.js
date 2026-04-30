@@ -6,11 +6,15 @@ var _evaluate = null;
 var Module = {
   onRuntimeInitialized: function () {
     _evaluate = Module.cwrap('evaluate', 'string', ['string']);
-    // Process messages that arrived before WASM was ready
+    self.postMessage({ type: 'ready' });
     _pendingMessages.forEach(handleMessage);
     _pendingMessages = null;
   }
 };
+
+self.addEventListener('error', function (e) {
+  self.postMessage({ type: 'init_error', message: e.message || String(e) });
+});
 
 function handleMessage(e) {
   var id = e.data.id;
