@@ -28,12 +28,7 @@ if (typeof window === 'undefined') {
 
           const newHeaders = new Headers(response.headers);
           newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
-          // Safari/iOSはCOEP: credentialless未対応のためrequire-corpを使う
-          const ua = self.navigator?.userAgent || '';
-          const isSafariOrIOS = /iP(hone|ad|od)/.test(ua) ||
-            (/Safari\//.test(ua) && /AppleWebKit\//.test(ua) &&
-             !/(Chrome|Chromium|Edg|OPR|CriOS|FxiOS)\//.test(ua));
-          newHeaders.set('Cross-Origin-Embedder-Policy', isSafariOrIOS ? 'require-corp' : 'credentialless');
+          newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
 
           return new Response(response.body, {
             status: response.status,

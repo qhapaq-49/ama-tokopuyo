@@ -5,23 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>とこぷよAI</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Google tag (gtag.js) — Safari/iOSはCOEP:require-corpのため除外 -->
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-P88CKNEL7Q"></script>
   <script>
-    (function() {
-      var ua = navigator.userAgent;
-      var isSafariOrIOS = /iP(hone|ad|od)/.test(ua) ||
-        (/Safari\//.test(ua) && /AppleWebKit\//.test(ua) &&
-         !/(Chrome|Chromium|Edg|OPR|CriOS|FxiOS)\//.test(ua));
-      if (isSafariOrIOS) return;
-      var s = document.createElement('script');
-      s.async = true;
-      s.src = 'https://www.googletagmanager.com/gtag/js?id=G-P88CKNEL7Q';
-      document.head.appendChild(s);
-      window.dataLayer = window.dataLayer || [];
-      window.gtag = function(){ dataLayer.push(arguments); };
-      gtag('js', new Date());
-      gtag('config', 'G-P88CKNEL7Q');
-    })();
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-P88CKNEL7Q');
   </script>
 </head>
 <body>
