@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD_DATE = '2026-04-30 23:20:57';
+const BUILD_DATE = '2026-05-01 15:24:09';
 
 // ─── PRNG ────────────────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -1457,11 +1457,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const iosNote = isIOS
       ? '「SW リセット」ボタンを試してください。それでも直らない場合はiOS Safariの既知の制限の可能性があります。'
       : '「SW リセット」またはCtrl+Shift+Rリロードを試してください。';
-    _showAIFatalError(
-      'AIエンジンが起動できません: クロスオリジン分離が無効です（SharedArrayBuffer 利用不可）。' +
-      iosNote +
-      ' [crossOriginIsolated=' + self.crossOriginIsolated + ']'
-    );
+
+    const swSupport = 'serviceWorker' in navigator;
+    const swController = swSupport ? (navigator.serviceWorker.controller ? 'active' : 'none') : 'unsupported';
+    const sabAvail = typeof SharedArrayBuffer !== 'undefined';
+
+    // SW登録状況を非同期で追記
+    const diagBase = 'crossOriginIsolated=' + self.crossOriginIsolated +
+      ' SAB=' + sabAvail +
+      ' SW=' + swController +
+      ' UA=' + navigator.userAgent.slice(0, 80);
+    _showAIFatalError(iosNote + ' [' + diagBase + ']');
+
+    if (swSupport) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        const regInfo = regs.map(r =>
+          (r.active ? 'A:' + r.active.scriptURL.split('/').pop() : '') +
+          (r.waiting ? ' W' : '') +
+          (r.installing ? ' I' : '')
+        ).join(', ') || 'none';
+        const el = document.getElementById('ai-fatal-msg');
+        if (el) el.textContent = iosNote + ' [' + diagBase + ' regs=' + regInfo + ']';
+      });
+    }
   }
 
   buildField();
