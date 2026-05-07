@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD_DATE = '2026-05-01 18:17:42';
+const BUILD_DATE = '2026-05-07 14:24:51';
 
 // ─── PRNG ────────────────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -748,7 +748,8 @@ function checkBadMove(candidates, x, r, pair) {
 
 function highlightAICandidate(c) {
   document.querySelectorAll('.cell-ai-best').forEach(el => el.classList.remove('cell-ai-best'));
-  const ghost = getGhostPositions(game.field, { x: c.x, r: c.r, pair: game.fullQueue[game.queueIndex] });
+  const pair = game.currentPiece?.pair || game.fullQueue[game.queueIndex];
+  const ghost = pair ? getGhostPositions(game.field, { x: c.x, r: c.r, pair }) : null;
   if (ghost) {
     for (const g of ghost) {
       const el = document.getElementById(`c${g.row}_${g.col}`);
@@ -757,13 +758,79 @@ function highlightAICandidate(c) {
   }
 }
 
+function buildAICandidatePreview(c) {
+  const pair = game.currentPiece?.pair || game.fullQueue[game.queueIndex];
+  if (!pair) return null;
+
+  const ghost = getGhostPositions(game.field, { x: c.x, r: c.r, pair });
+  if (!ghost) return null;
+
+  const field = cloneField(game.field);
+  const placed = new Set();
+  for (const g of ghost) {
+    if (g.row < 0 || g.row >= 13 || g.col < 0 || g.col >= 6) continue;
+    field[g.row][g.col] = g.color;
+    placed.add(`${g.row},${g.col}`);
+  }
+
+  return { field, placed };
+}
+
+function renderAICandidatePreview(c) {
+  const preview = document.getElementById('ai-preview');
+  if (!preview) return;
+  preview.innerHTML = '';
+
+  const data = buildAICandidatePreview(c);
+  if (!data) return;
+
+  const board = document.createElement('div');
+  board.className = 'ai-preview-field';
+
+  for (let row = 0; row < 13; row++) {
+    for (let col = 0; col < 6; col++) {
+      const val = data.field[row][col];
+      const cell = document.createElement('div');
+      cell.className = 'ai-preview-cell';
+      if (val === '.') {
+        cell.classList.add('empty');
+      } else if (val === '#') {
+        cell.classList.add('hash');
+        cell.textContent = '×';
+      } else {
+        cell.classList.add(val);
+        cell.textContent = val;
+      }
+      if (row === 0) cell.classList.add('hidden-row');
+      if (data.placed.has(`${row},${col}`)) cell.classList.add('placed');
+      board.appendChild(cell);
+    }
+  }
+
+  preview.appendChild(board);
+}
+
 function showAIOverlay(candidates) {
   const overlay = document.getElementById('ai-overlay');
   const list = document.getElementById('ai-candidates');
   if (!overlay || !list) return;
 
   list.innerHTML = '';
+  const preview = document.getElementById('ai-preview');
+  if (preview) preview.innerHTML = '';
   const top = candidates.slice(0, 5);
+  const items = [];
+
+  function previewCandidate(index) {
+    const c = top[index];
+    if (!c) return;
+    for (let j = 0; j < items.length; j++) {
+      items[j].classList.toggle('previewing', j === index);
+    }
+    highlightAICandidate(c);
+    renderAICandidatePreview(c);
+  }
+
   for (let i = 0; i < top.length; i++) {
     const c = top[i];
     const li = document.createElement('li');
@@ -776,19 +843,20 @@ function showAIOverlay(candidates) {
         <strong>x=${c.x + 1}  ${c.r}</strong>
         <div class="cand-score">score: ${c.expected_score.toLocaleString()}</div>
       </div>`;
-    li.addEventListener('mouseenter', () => highlightAICandidate(c));
-    li.addEventListener('mouseleave', () => highlightAICandidate(top[0]));
+    li.addEventListener('mouseenter', () => previewCandidate(i));
     li.addEventListener('click', () => {
       if (game.currentPiece) {
         game.currentPiece = { ...game.currentPiece, x: c.x, r: c.r };
         hideAIOverlay();
       }
     });
+    items.push(li);
     list.appendChild(li);
   }
+  list.onmouseleave = () => previewCandidate(0);
 
   overlay.classList.add('active');
-  highlightAICandidate(top[0]);
+  previewCandidate(0);
 }
 
 function hideAIOverlay() {
