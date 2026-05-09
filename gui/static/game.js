@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD_DATE = '2026-05-09 20:38:32';
+const BUILD_DATE = '2026-05-10 00:25:48';
 
 // ─── PRNG ────────────────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -14,6 +14,7 @@ function mulberry32(seed) {
 }
 
 const COLORS = ['R', 'Y', 'G', 'B'];
+const QUEUE_CHUNK_SIZE = 256;
 
 // ─── tsumo-rule.md準拠 ぷよぷよ20th LCGツモ生成 ────────────────────────────
 // seed 0〜65535 → 128ペアの固定ツモ列（ループ）
@@ -55,7 +56,7 @@ function generateTsumoLCG(seed) {
   return Array.from({ length: 128 }, (_, i) => [COLORS[arr2[i * 2]], COLORS[arr2[i * 2 + 1]]]);
 }
 
-function generateQueue(seed, count = 200) {
+function generateQueue(seed, count = QUEUE_CHUNK_SIZE) {
   if (seed >= 0 && seed <= 65535) {
     const base = generateTsumoLCG(seed);
     return Array.from({ length: count }, (_, i) => base[i % 128]);
@@ -318,7 +319,8 @@ function generatePuyopURL() {
 // ─── GAME STATE ──────────────────────────────────────────────────────────────
 const game = {
   field: emptyField(),
-  fullQueue: [],      // 200-length generated queue
+  fullQueue: [],      // generated queue, extended as play continues
+  seed: 0,
   queueIndex: 0,
   currentPiece: null,
   history: [],        // [{field, queueIndex, moveCount, chainCount}]
@@ -340,6 +342,13 @@ const game = {
   initialField: null, // field state at game start (for ぷよ譜URL)
   garbageMode: false,
 };
+
+function ensureQueueLength(requiredLength) {
+  if (game.fullQueue.length >= requiredLength) return;
+  const currentLength = game.fullQueue.length || QUEUE_CHUNK_SIZE;
+  const nextLength = Math.max(requiredLength, currentLength + QUEUE_CHUNK_SIZE);
+  game.fullQueue = generateQueue(game.seed, nextLength);
+}
 
 // ─── RENDERING ───────────────────────────────────────────────────────────────
 const COLOR_NAMES = { R: '赤', Y: '黄', G: '緑', B: '青' };
@@ -454,9 +463,9 @@ function renderQueue() {
     el.innerHTML = '<div style="color:#888;font-size:0.75rem">非表示</div>';
     return;
   }
+  ensureQueueLength(game.queueIndex + settings.nextVisible + 1);
   for (let i = 1; i <= settings.nextVisible; i++) {
     const idx = game.queueIndex + i;
-    if (idx >= game.fullQueue.length) break;
     const [c1, c2] = game.fullQueue[idx];
     const div = document.createElement('div');
     div.className = 'next-item';
@@ -697,6 +706,7 @@ async function startAIQuery() {
   if (game.aiQuerying || game.gameOver) return;
   const qi = game.queueIndex;
   // Need at least 2 pairs for the binary
+  ensureQueueLength(qi + 4);
   const queuePairs = game.fullQueue.slice(qi, qi + 4).map(p => [p[0], p[1]]);
   if (queuePairs.length < 2) return;
 
@@ -882,6 +892,7 @@ async function onAskAI() {
   if (!candidates) {
     // Query now if not available
     const qi = game.queueIndex;
+    ensureQueueLength(qi + 4);
     const queuePairs = game.fullQueue.slice(qi, qi + 4).map(p => [p[0], p[1]]);
     if (queuePairs.length < 2) return;
     try {
@@ -908,6 +919,7 @@ async function onPlayAI() {
 
     if (!candidates) {
       const qi = game.queueIndex;
+      ensureQueueLength(qi + 4);
       const queuePairs = game.fullQueue.slice(qi, qi + 4).map(p => [p[0], p[1]]);
       if (queuePairs.length < 2) return;
       try {
@@ -960,6 +972,7 @@ async function onAutoPlay() {
       let candidates = game.pendingAI?.candidates;
       if (!candidates) {
         const qi = game.queueIndex;
+        ensureQueueLength(qi + 4);
         const queuePairs = game.fullQueue.slice(qi, qi + 4).map(p => [p[0], p[1]]);
         if (queuePairs.length < 2) break;
         const result = await queryAI(game.field, queuePairs).catch(() => null);
@@ -993,6 +1006,7 @@ async function onAutoPlay() {
 
 // ─── GAME ACTIONS ─────────────────────────────────────────────────────────────
 function nextPiece() {
+  ensureQueueLength(game.queueIndex + 1);
   if (game.queueIndex >= game.fullQueue.length) {
     game.gameOver = true;
     render();
@@ -1181,6 +1195,7 @@ function redoMove() {
 
 function startNewGame(seed) {
   game.field = emptyField();
+  game.seed = seed;
   game.fullQueue = generateQueue(seed);
   game.queueIndex = 0;
   game.currentPiece = null;
