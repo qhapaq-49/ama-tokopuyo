@@ -820,10 +820,12 @@ function showAIOverlay(candidates) {
   if (preview) preview.innerHTML = '';
   const top = candidates.slice(0, 5);
   const items = [];
+  let previewIndex = -1;
 
   function previewCandidate(index) {
     const c = top[index];
     if (!c) return;
+    previewIndex = index;
     for (let j = 0; j < items.length; j++) {
       items[j].classList.toggle('previewing', j === index);
     }
@@ -836,15 +838,21 @@ function showAIOverlay(candidates) {
     const li = document.createElement('li');
     li.className = i === 0 ? 'best' : '';
     li.style.cursor = 'pointer';
-    li.title = 'クリックでこの配置に移動';
+    li.title = '1回目でプレビュー、もう一度クリックでこの配置に移動';
     li.innerHTML = `
       <div class="rank-badge ${i === 0 ? 'gold' : ''}">${i + 1}</div>
       <div class="cand-detail">
         <strong>x=${c.x + 1}  ${c.r}</strong>
         <div class="cand-score">score: ${c.expected_score.toLocaleString()}</div>
       </div>`;
-    li.addEventListener('mouseenter', () => previewCandidate(i));
+    li.addEventListener('pointerenter', e => {
+      if (e.pointerType === 'mouse') previewCandidate(i);
+    });
     li.addEventListener('click', () => {
+      if (previewIndex !== i) {
+        previewCandidate(i);
+        return;
+      }
       if (game.currentPiece) {
         game.currentPiece = { ...game.currentPiece, x: c.x, r: c.r };
         hideAIOverlay();
