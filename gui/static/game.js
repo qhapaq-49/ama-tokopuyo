@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD_DATE = '2026-05-10 00:25:48';
+const BUILD_DATE = '2026-05-27 19:37:57';
 
 // ─── PRNG ────────────────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -486,6 +486,11 @@ function renderStats() {
 function renderAiStatus() {
   const el = document.getElementById('ai-status');
   if (!el) return;
+  if (game.autoPlaying) {
+    el.textContent = '';
+    el.className = 'ai-status';
+    return;
+  }
   if (game.aiQuerying) {
     el.textContent = 'AI思考中...';
     el.className = 'ai-status querying';
@@ -680,7 +685,7 @@ _aiWorker.onerror = (e) => {
   }
 };
 
-async function queryAI(field, queuePairs) {
+async function queryAI(field, queuePairs, options = {}) {
   const fieldStr = field.map(row => row.join(''));
   const input = JSON.stringify({
     field: fieldStr,
@@ -689,14 +694,16 @@ async function queryAI(field, queuePairs) {
   });
   return new Promise((resolve, reject) => {
     const id = _aiCallId++;
-    const timer = setTimeout(() => {
+    const timeoutMs = options.timeoutMs ?? settings.aiTimeoutMs;
+    const timer = timeoutMs > 0 ? setTimeout(() => {
       if (!_aiPending.has(id)) return;
       _aiPending.delete(id);
       reject(new Error('AI timeout'));
-    }, settings.aiTimeoutMs);
+    }, timeoutMs) : null;
+    const clearTimer = () => { if (timer !== null) clearTimeout(timer); };
     _aiPending.set(id, {
-      resolve: (r) => { clearTimeout(timer); resolve(JSON.parse(r)); },
-      reject:  (e) => { clearTimeout(timer); reject(e); },
+      resolve: (r) => { clearTimer(); resolve(JSON.parse(r)); },
+      reject:  (e) => { clearTimer(); reject(e); },
     });
     _aiWorker.postMessage({ id, input });
   });
@@ -955,6 +962,7 @@ async function onPlayAI() {
 async function onAutoPlay() {
   if (game.autoPlaying) {
     game.autoPlaying = false;
+    game.aiPlaying = false;
     render();
     return;
   }
@@ -975,18 +983,21 @@ async function onAutoPlay() {
         ensureQueueLength(qi + 4);
         const queuePairs = game.fullQueue.slice(qi, qi + 4).map(p => [p[0], p[1]]);
         if (queuePairs.length < 2) break;
-        const result = await queryAI(game.field, queuePairs).catch(() => null);
-        if (!result || result.error) break;
+        const result = await queryAI(game.field, queuePairs, { timeoutMs: 0 }).catch(e => ({ error: e.message || String(e) }));
+        if (result.error) {
+          game.aiError = result.error;
+          break;
+        }
         candidates = result.candidates;
         if (game.queueIndex === qi) game.pendingAI = { candidates, forQueueIndex: qi };
       }
-      if (game.session !== session || !game.currentPiece) break;
+      if (!game.autoPlaying || game.session !== session || !game.currentPiece) break;
       if (!candidates || candidates.length === 0) break;
       const best = candidates[0];
       game.currentPiece = { ...game.currentPiece, x: best.x, r: best.r };
       render();
       await sleep(150);
-      if (game.session !== session || !game.currentPiece) break;
+      if (!game.autoPlaying || game.session !== session || !game.currentPiece) break;
       await dropCurrentPiece();
     } finally {
       game.aiPlaying = false;
@@ -1023,7 +1034,7 @@ function nextPiece() {
     return;
   }
 
-  if (game.aiEnabled) {
+  if (game.aiEnabled && !game.autoPlaying) {
     startAIQuery();  // async, no await
   }
   render();
@@ -1219,6 +1230,43 @@ function startNewGame(seed) {
   nextPiece();
 }
 
+
+const DESKTOP_SETTINGS_QUERY = '(min-width: 541px)';
+
+function syncSettingsPanelForViewport() {
+  const settingsColumn = document.querySelector('.settings-column');
+  const sidebar = document.querySelector('.sidebar');
+  const gameArea = document.querySelector('.game-area');
+  const settingsPanel = document.querySelector('.settings-panel');
+  if (!settingsColumn || !sidebar || !gameArea || !settingsPanel) return;
+
+  const desktop = window.matchMedia(DESKTOP_SETTINGS_QUERY).matches;
+  if (desktop) {
+    if (settingsColumn.parentElement !== gameArea) gameArea.appendChild(settingsColumn);
+    settingsPanel.open = true;
+  } else {
+    if (settingsColumn.parentElement !== sidebar) sidebar.appendChild(settingsColumn);
+    settingsPanel.open = false;
+  }
+}
+
+function setupSettingsPanelViewportSync() {
+  syncSettingsPanelForViewport();
+  const mq = window.matchMedia(DESKTOP_SETTINGS_QUERY);
+  const onChange = () => syncSettingsPanelForViewport();
+  if (mq.addEventListener) mq.addEventListener('change', onChange);
+  else mq.addListener(onChange);
+
+  const settingsPanel = document.querySelector('.settings-panel');
+  if (settingsPanel) {
+    settingsPanel.addEventListener('toggle', () => {
+      if (window.matchMedia(DESKTOP_SETTINGS_QUERY).matches && !settingsPanel.open) {
+        settingsPanel.open = true;
+      }
+    });
+  }
+}
+
 // ─── DOM SETUP ───────────────────────────────────────────────────────────────
 function toggleGarbageAt(row, col) {
   if (game.animating) return;
@@ -1376,7 +1424,7 @@ function setupControls() {
     aiModeEl.addEventListener('change', () => {
       settings.weightsMode = aiModeEl.value;
       game.pendingAI = null;
-      if (game.aiEnabled && game.currentPiece) startAIQuery();
+      if (game.aiEnabled && !game.autoPlaying && game.currentPiece) startAIQuery();
       focusGame();
     });
   }
@@ -1386,7 +1434,7 @@ function setupControls() {
     noFireEl.addEventListener('change', () => {
       settings.noFire = noFireEl.checked;
       game.pendingAI = null;
-      if (game.aiEnabled && game.currentPiece) startAIQuery();
+      if (game.aiEnabled && !game.autoPlaying && game.currentPiece) startAIQuery();
       focusGame();
     });
   }
@@ -1573,6 +1621,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  setupSettingsPanelViewportSync();
   buildField();
   setupControls();
 

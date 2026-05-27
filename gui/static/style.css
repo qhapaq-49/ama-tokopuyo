@@ -172,6 +172,23 @@ button.active-mode:hover:not(:disabled) { background: #3a7a3a; }
   min-width: 160px;
 }
 
+.settings-column {
+  width: 260px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  position: sticky;
+  top: 12px;
+}
+
+.settings-panel { width: 100%; }
+
+@media (min-width: 541px) {
+  .settings-panel > summary {
+    cursor: default !important;
+    pointer-events: none;
+  }
+}
+
 .panel {
   background: #16213e;
   border: 1px solid #3d3d6b;
@@ -611,6 +628,13 @@ details.panel > summary::-webkit-details-marker {
     min-width: 0;
     max-width: none;
     gap: 8px;
+  }
+
+  .settings-column {
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    position: static;
   }
 
   /* Hide desktop controls panel from sidebar */
