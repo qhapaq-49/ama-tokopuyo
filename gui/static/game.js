@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD_DATE = '2026-05-28 11:51:19';
+const BUILD_DATE = '2026-05-28 22:41:46';
 
 // ─── PRNG ────────────────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -691,6 +691,7 @@ async function queryAI(field, queuePairs, options = {}) {
   const fieldStr = field.map(row => row.join(''));
   const input = JSON.stringify({
     field: fieldStr,
+    row14: game.row14,
     queue: queuePairs,
     options: { width: settings.beamWidth, depth: settings.beamDepth, weights: settings.weightsMode, no_fire: settings.noFire },
   });
@@ -711,6 +712,18 @@ async function queryAI(field, queuePairs, options = {}) {
   });
 }
 
+function filterLegalAICandidates(candidates, pair = game.currentPiece?.pair) {
+  if (!Array.isArray(candidates) || !pair) return [];
+  return candidates.filter(c => getGhostPositions(game.field, { x: c.x, r: c.r, pair }));
+}
+
+function storePendingAICandidates(candidates, queueIndex) {
+  const pair = game.fullQueue[queueIndex] || game.currentPiece?.pair;
+  const legal = filterLegalAICandidates(candidates, pair);
+  game.pendingAI = { candidates: legal, forQueueIndex: queueIndex };
+  return legal;
+}
+
 async function startAIQuery() {
   if (game.aiQuerying || game.gameOver) return;
   const qi = game.queueIndex;
@@ -728,7 +741,7 @@ async function startAIQuery() {
     const result = await queryAI(game.field, queuePairs);
     if (result.error) throw new Error(result.error);
     if (game.queueIndex === qi) {
-      game.pendingAI = { candidates: result.candidates, forQueueIndex: qi };
+      storePendingAICandidates(result.candidates, qi);
     }
   } catch (e) {
     game.aiError = e.message;
@@ -917,9 +930,9 @@ function hideAIOverlay() {
 
 async function onAskAI() {
   if (game.gameOver) return;
-  let candidates = game.pendingAI?.candidates;
+  let candidates = filterLegalAICandidates(game.pendingAI?.candidates);
 
-  if (!candidates) {
+  if (candidates.length === 0) {
     // Query now if not available
     const qi = game.queueIndex;
     ensureQueueLength(qi + 4);
@@ -928,7 +941,7 @@ async function onAskAI() {
     try {
       const result = await queryAI(game.field, queuePairs);
       if (result.error) { alert('AI error: ' + result.error); return; }
-      candidates = result.candidates;
+      candidates = filterLegalAICandidates(result.candidates);
     } catch (e) {
       alert('AI error: ' + e.message);
       return;
@@ -945,9 +958,9 @@ async function onPlayAI() {
   render();
 
   try {
-    let candidates = game.pendingAI?.candidates;
+    let candidates = filterLegalAICandidates(game.pendingAI?.candidates);
 
-    if (!candidates) {
+    if (candidates.length === 0) {
       const qi = game.queueIndex;
       ensureQueueLength(qi + 4);
       const queuePairs = game.fullQueue.slice(qi, qi + 4).map(p => [p[0], p[1]]);
@@ -955,9 +968,9 @@ async function onPlayAI() {
       try {
         const result = await queryAI(game.field, queuePairs);
         if (result.error) { alert('AI error: ' + result.error); return; }
-        candidates = result.candidates;
+        candidates = filterLegalAICandidates(result.candidates);
         if (game.queueIndex === qi) {
-          game.pendingAI = { candidates, forQueueIndex: qi };
+          storePendingAICandidates(result.candidates, qi);
         }
       } catch (e) {
         alert('AI error: ' + e.message);
@@ -1000,8 +1013,8 @@ async function onAutoPlay() {
     game.aiPlaying = true;
     render();
     try {
-      let candidates = game.pendingAI?.candidates;
-      if (!candidates) {
+      let candidates = filterLegalAICandidates(game.pendingAI?.candidates);
+      if (candidates.length === 0) {
         const qi = game.queueIndex;
         ensureQueueLength(qi + 4);
         const queuePairs = game.fullQueue.slice(qi, qi + 4).map(p => [p[0], p[1]]);
@@ -1011,8 +1024,8 @@ async function onAutoPlay() {
           game.aiError = result.error;
           break;
         }
-        candidates = result.candidates;
-        if (game.queueIndex === qi) game.pendingAI = { candidates, forQueueIndex: qi };
+        candidates = filterLegalAICandidates(result.candidates);
+        if (game.queueIndex === qi) storePendingAICandidates(result.candidates, qi);
       }
       if (!game.autoPlaying || game.session !== session || !game.currentPiece) break;
       if (!candidates || candidates.length === 0) break;

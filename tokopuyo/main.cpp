@@ -77,6 +77,27 @@ bool parse_field(const json& rows, Field& out_field, std::string& err)
     return true;
 }
 
+bool parse_row14(const json& req, Field& field, std::string& err)
+{
+    if (!req.contains("row14")) {
+        return true;
+    }
+
+    if (!req["row14"].is_number_integer()) {
+        err = "row14 must be an integer bitmask";
+        return false;
+    }
+
+    int row14 = req["row14"].get<int>();
+    if (row14 < 0 || row14 >= (1 << 6)) {
+        err = "row14 must be between 0 and 63";
+        return false;
+    }
+
+    field.row14 = static_cast<u8>(row14);
+    return true;
+}
+
 // parse_queue: JSON配列 [["R","Y"], ["G","B"], ...] を cell::Queue に変換
 // 最低2ペア必要 (beam::search_multi が内部で残りを補完する)
 bool parse_queue(const json& pairs, cell::Queue& out_queue, std::string& err)
@@ -170,6 +191,11 @@ int main()
             }
 
             if (!parse_field(req["field"], field, err)) {
+                std::cout << json{{"error", err}}.dump() << "\n";
+                std::cout.flush();
+                continue;
+            }
+            if (!parse_row14(req, field, err)) {
                 std::cout << json{{"error", err}}.dump() << "\n";
                 std::cout.flush();
                 continue;

@@ -60,6 +60,27 @@ static bool parse_field(const json& rows, Field& out, std::string& err)
     return true;
 }
 
+static bool parse_row14(const json& req, Field& field, std::string& err)
+{
+    if (!req.contains("row14")) {
+        return true;
+    }
+
+    if (!req["row14"].is_number_integer()) {
+        err = "row14 must be an integer bitmask";
+        return false;
+    }
+
+    int row14 = req["row14"].get<int>();
+    if (row14 < 0 || row14 >= (1 << 6)) {
+        err = "row14 must be between 0 and 63";
+        return false;
+    }
+
+    field.row14 = static_cast<u8>(row14);
+    return true;
+}
+
 static bool parse_queue(const json& pairs, cell::Queue& out, std::string& err)
 {
     if (!pairs.is_array() || pairs.size() < 2) {
@@ -131,6 +152,11 @@ const char* evaluate(const char* json_input)
             return result.c_str();
         }
         if (!parse_field(req["field"], field, err)) {
+            response = {{"error", err}};
+            result = response.dump();
+            return result.c_str();
+        }
+        if (!parse_row14(req, field, err)) {
             response = {{"error", err}};
             result = response.dump();
             return result.c_str();
