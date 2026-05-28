@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD_DATE = '2026-05-27 19:37:57';
+const BUILD_DATE = '2026-05-28 11:51:19';
 
 // ─── PRNG ────────────────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -342,6 +342,8 @@ const game = {
   initialField: null, // field state at game start (for ぷよ譜URL)
   garbageMode: false,
 };
+
+let aiOverlayState = null;
 
 function ensureQueueLength(requiredLength) {
   if (game.fullQueue.length >= requiredLength) return;
@@ -827,28 +829,49 @@ function renderAICandidatePreview(c) {
   preview.appendChild(board);
 }
 
+function setAIOverlaySelection(index, wrap = true) {
+  if (!aiOverlayState || aiOverlayState.top.length === 0) return;
+  const { top, items } = aiOverlayState;
+  const nextIndex = wrap ? (index + top.length) % top.length : index;
+  if (nextIndex < 0 || nextIndex >= top.length) return;
+  const c = top[nextIndex];
+  aiOverlayState.selectedIndex = nextIndex;
+  for (let j = 0; j < items.length; j++) {
+    const selected = j === nextIndex;
+    items[j].classList.toggle('previewing', selected);
+    items[j].setAttribute('aria-selected', selected ? 'true' : 'false');
+  }
+  items[nextIndex]?.scrollIntoView({ block: 'nearest' });
+  highlightAICandidate(c);
+  renderAICandidatePreview(c);
+}
+
+function moveAIOverlaySelection(delta) {
+  if (!aiOverlayState) return;
+  setAIOverlaySelection(aiOverlayState.selectedIndex + delta);
+}
+
+function applyAIOverlaySelection() {
+  if (!aiOverlayState || !game.currentPiece) return;
+  const c = aiOverlayState.top[aiOverlayState.selectedIndex];
+  if (!c) return;
+  game.currentPiece = { ...game.currentPiece, x: c.x, r: c.r };
+  hideAIOverlay();
+}
+
 function showAIOverlay(candidates) {
   const overlay = document.getElementById('ai-overlay');
   const list = document.getElementById('ai-candidates');
   if (!overlay || !list) return;
 
   list.innerHTML = '';
+  list.setAttribute('role', 'listbox');
   const preview = document.getElementById('ai-preview');
   if (preview) preview.innerHTML = '';
   const top = candidates.slice(0, 5);
   const items = [];
-  let previewIndex = -1;
 
-  function previewCandidate(index) {
-    const c = top[index];
-    if (!c) return;
-    previewIndex = index;
-    for (let j = 0; j < items.length; j++) {
-      items[j].classList.toggle('previewing', j === index);
-    }
-    highlightAICandidate(c);
-    renderAICandidatePreview(c);
-  }
+  aiOverlayState = { top, items, selectedIndex: -1 };
 
   for (let i = 0; i < top.length; i++) {
     const c = top[i];
@@ -856,6 +879,8 @@ function showAIOverlay(candidates) {
     li.className = i === 0 ? 'best' : '';
     li.style.cursor = 'pointer';
     li.title = '1回目でプレビュー、もう一度クリックでこの配置に移動';
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', 'false');
     li.innerHTML = `
       <div class="rank-badge ${i === 0 ? 'gold' : ''}">${i + 1}</div>
       <div class="cand-detail">
@@ -863,30 +888,28 @@ function showAIOverlay(candidates) {
         <div class="cand-score">score: ${c.expected_score.toLocaleString()}</div>
       </div>`;
     li.addEventListener('pointerenter', e => {
-      if (e.pointerType === 'mouse') previewCandidate(i);
+      if (e.pointerType === 'mouse') setAIOverlaySelection(i);
     });
     li.addEventListener('click', () => {
-      if (previewIndex !== i) {
-        previewCandidate(i);
+      if (aiOverlayState?.selectedIndex !== i) {
+        setAIOverlaySelection(i);
         return;
       }
-      if (game.currentPiece) {
-        game.currentPiece = { ...game.currentPiece, x: c.x, r: c.r };
-        hideAIOverlay();
-      }
+      applyAIOverlaySelection();
     });
     items.push(li);
     list.appendChild(li);
   }
-  list.onmouseleave = () => previewCandidate(0);
+  list.onmouseleave = () => setAIOverlaySelection(0);
 
   overlay.classList.add('active');
-  previewCandidate(0);
+  setAIOverlaySelection(0);
 }
 
 function hideAIOverlay() {
   const overlay = document.getElementById('ai-overlay');
   if (overlay) overlay.classList.remove('active');
+  aiOverlayState = null;
   // Remove highlights
   document.querySelectorAll('.cell-ai-best').forEach(el => el.classList.remove('cell-ai-best'));
   render();
@@ -1528,10 +1551,28 @@ function setupControls() {
       return;
     }
 
-    // AI overlay が開いているときはAsk AIキーまたはEsc/Enterで閉じる
+    // AI overlay が開いているときは候補選択キーを優先する
     const aiOverlay = document.getElementById('ai-overlay');
     if (aiOverlay && aiOverlay.classList.contains('active')) {
-      if (e.key === 'Escape' || e.key === 'Enter' || matchesKey(e, keyConfig.askAI)) {
+      if (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J') {
+        e.preventDefault();
+        moveAIOverlaySelection(1);
+      } else if (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K') {
+        e.preventDefault();
+        moveAIOverlaySelection(-1);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        setAIOverlaySelection(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        setAIOverlaySelection((aiOverlayState?.top.length || 1) - 1);
+      } else if (/^[1-5]$/.test(e.key)) {
+        e.preventDefault();
+        setAIOverlaySelection(Number(e.key) - 1, false);
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        applyAIOverlaySelection();
+      } else if (e.key === 'Escape' || matchesKey(e, keyConfig.askAI)) {
         e.preventDefault();
         hideAIOverlay();
       }
