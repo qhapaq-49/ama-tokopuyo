@@ -16,25 +16,32 @@
 </head>
 <body>
 
-<h1>とこぷよAI</h1>
-<p class="credit">AI engine: <a href="https://github.com/citrus610/ama" target="_blank" rel="noopener">ama</a> by citrus610 · developer: <a href="https://x.com/Qhapaq_49" target="_blank" rel="noopener">@Qhapaq_49</a> · last updated: <span id="build-date">?</span></p>
+<h1 data-i18n="title">とこぷよAI</h1>
+<p class="credit"><span data-i18n="credit_ai_engine">AI engine</span>: <a href="https://github.com/citrus610/ama" target="_blank" rel="noopener">ama</a> by citrus610 · <span data-i18n="credit_developer">developer</span>: <a href="https://x.com/Qhapaq_49" target="_blank" rel="noopener">@Qhapaq_49</a> · <span data-i18n="last_updated">last updated</span>: <span id="build-date">?</span></p>
 
 <!-- AIエラー時のリロードバナー -->
 <div id="ai-fatal-banner" style="display:none;align-items:flex-start;gap:12px;background:#4a1010;border:1px solid #c44;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:0.85rem">
-  <span style="flex:1;color:#faa">⚠️ AIが動作していません。<br><small id="ai-fatal-msg" style="color:#f88;word-break:break-all"></small></span>
+  <span style="flex:1;color:#faa">⚠️ <span data-i18n="ai_fatal_title">AIが動作していません。</span><br><small id="ai-fatal-msg" style="color:#f88;word-break:break-all"></small></span>
   <div style="display:flex;flex-direction:column;gap:6px;white-space:nowrap">
-    <button onclick="location.reload()">リロード</button>
-    <button onclick="resetSWAndReload()" title="サービスワーカーをリセットして強制リロード">SW リセット</button>
+    <button onclick="location.reload()" data-i18n="reload">リロード</button>
+    <button onclick="resetSWAndReload()" title="サービスワーカーをリセットして強制リロード" data-i18n="sw_reset" data-i18n-title="sw_reset_title">SW リセット</button>
   </div>
 </div>
 
 <div class="controls-bar">
-  <label>シード: <input type="number" id="seed-input" value="42" min="0" max="65535"></label>
-  <button id="new-game-btn" class="primary">新しいゲーム</button>
-  <button id="reset-start-btn">初手に戻る</button>
+  <label><span data-i18n="seed">シード</span>: <input type="number" id="seed-input" value="42" min="0" max="65535"></label>
+  <button id="new-game-btn" class="primary" data-i18n="new_game">新しいゲーム</button>
+  <button id="reset-start-btn" data-i18n="reset_start">初手に戻る</button>
   <label>
     <input type="checkbox" id="ai-toggle">
-    AI評価モード
+    <span data-i18n="ai_eval_mode">AI評価モード</span>
+  </label>
+  <label>
+    <span data-i18n="language">言語</span>:
+    <select id="lang-select" aria-label="Language">
+      <option value="ja">日本語</option>
+      <option value="en">English</option>
+    </select>
   </label>
 </div>
 
@@ -58,34 +65,34 @@
 
     <!-- Controls -->
     <div class="panel controls-panel">
-      <h3>操作</h3>
+      <h3 data-i18n="controls">操作</h3>
 
       <div class="rotate-row">
-        <button id="rot-ccw-btn">↺ 左回転 (Z)</button>
-        <button id="rot-cw-btn">↻ 右回転 (X)</button>
+        <button id="rot-ccw-btn" data-i18n="rotate_ccw_btn">↺ 左回転 (Z)</button>
+        <button id="rot-cw-btn" data-i18n="rotate_cw_btn">↻ 右回転 (X)</button>
       </div>
 
       <div class="move-grid">
-        <button id="left-btn">← (←)</button>
-        <button id="drop-btn" class="drop-btn primary">落とす (↓)</button>
-        <button id="right-btn">→ (→)</button>
+        <button id="left-btn" data-i18n="left_btn">← (←)</button>
+        <button id="drop-btn" class="drop-btn primary" data-i18n="drop_btn">落とす (↓)</button>
+        <button id="right-btn" data-i18n="right_btn">→ (→)</button>
       </div>
     </div>
 
     <!-- Ask AI -->
     <button id="ask-ai-btn" class="primary" style="width:100%">Ask AI (A)</button>
-    <button id="play-ai-btn" style="width:100%">AI最善手を打つ (S)</button>
-    <button id="auto-play-btn" style="width:100%">オートプレイ</button>
-    <button id="puyop-url-btn" style="width:100%">ぷよ譜URLをコピー</button>
+    <button id="play-ai-btn" style="width:100%" data-i18n="play_ai_btn">AI最善手を打つ (S)</button>
+    <button id="auto-play-btn" style="width:100%" data-i18n="autoplay">オートプレイ</button>
+    <button id="puyop-url-btn" style="width:100%" data-i18n="copy_puyop_url">ぷよ譜URLをコピー</button>
 
     <!-- おじゃま操作 -->
     <div class="panel" style="display:flex;flex-direction:column;gap:6px">
-      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#aaa">おじゃまぷよ</div>
-      <button id="garbage-mode-btn" style="width:100%">おじゃま置きモード</button>
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#aaa" data-i18n="garbage_puyo">おじゃまぷよ</div>
+      <button id="garbage-mode-btn" style="width:100%" data-i18n="garbage_mode">おじゃま置きモード</button>
       <div style="display:flex;gap:6px;align-items:center">
         <input type="number" id="garbage-count" value="6" min="1" max="30" style="width:60px;background:#2d2d4e;color:#eee;border:1px solid #555;padding:3px 6px;border-radius:4px">
-        <span style="font-size:0.75rem;color:#aaa">個落とす</span>
-        <button id="drop-garbage-btn" style="flex:1">落とす</button>
+        <span style="font-size:0.75rem;color:#aaa" data-i18n="garbage_count_suffix">個落とす</span>
+        <button id="drop-garbage-btn" style="flex:1" data-i18n="drop_garbage">落とす</button>
       </div>
     </div>
 
@@ -98,29 +105,29 @@
     <!-- Stats -->
     <div class="panel">
       <div class="stats">
-        <span>手数: <span id="move-count" class="val">0</span></span>
-        <span>連鎖: <span id="chain-count" class="val">0</span></span>
-        <span>スコア: <span id="score-count" class="val">0</span></span>
+        <span><span data-i18n="moves">手数</span>: <span id="move-count" class="val">0</span></span>
+        <span><span data-i18n="chains">連鎖</span>: <span id="chain-count" class="val">0</span></span>
+        <span><span data-i18n="score">スコア</span>: <span id="score-count" class="val">0</span></span>
       </div>
     </div>
 
     <div class="settings-column">
     <!-- Settings -->
     <details class="panel settings-panel">
-      <summary style="cursor:pointer;user-select:none"><h3 style="display:inline">設定</h3></summary>
+      <summary style="cursor:pointer;user-select:none"><h3 style="display:inline" data-i18n="settings">設定</h3></summary>
       <div style="margin-top:8px;display:flex;flex-direction:column;gap:10px">
 
         <div class="setting-row">
-          <span>強さプリセット</span>
+          <span data-i18n="strength_preset">強さプリセット</span>
           <div class="preset-buttons">
-            <button class="preset-btn" data-w="250" data-d="16">速度重視</button>
-            <button class="preset-btn" data-w="500" data-d="24">標準</button>
-            <button class="preset-btn" data-w="500" data-d="32">強め</button>
+            <button class="preset-btn" data-w="250" data-d="16" data-i18n="preset_fast">速度重視</button>
+            <button class="preset-btn" data-w="500" data-d="24" data-i18n="preset_standard">標準</button>
+            <button class="preset-btn" data-w="500" data-d="32" data-i18n="preset_strong">強め</button>
           </div>
         </div>
 
         <label class="setting-row">
-          <span>ビーム幅 <small>(精度・速度)</small></span>
+          <span><span data-i18n="beam_width">ビーム幅</span> <small data-i18n="accuracy_speed">(精度・速度)</small></span>
           <div class="setting-control">
             <input type="range" id="beam-width" min="50" max="1000" step="50" value="500">
             <span id="beam-width-val">500</span>
@@ -128,7 +135,7 @@
         </label>
 
         <label class="setting-row">
-          <span>探索深さ <small>(手数先読み)</small></span>
+          <span><span data-i18n="search_depth">探索深さ</span> <small data-i18n="lookahead">(手数先読み)</small></span>
           <div class="setting-control">
             <input type="range" id="beam-depth" min="4" max="32" step="4" value="24">
             <span id="beam-depth-val">24</span>
@@ -136,7 +143,7 @@
         </label>
 
         <label class="setting-row">
-          <span>AIタイムアウト <small>(秒)</small></span>
+          <span><span data-i18n="ai_timeout">AIタイムアウト</span> <small data-i18n="seconds">(秒)</small></span>
           <div class="setting-control">
             <input type="range" id="ai-timeout" min="5" max="120" step="5" value="10">
             <span id="ai-timeout-val">10s</span>
@@ -144,7 +151,7 @@
         </label>
 
         <label class="setting-row">
-          <span>悪手しきい値 <small>(0=警告なし)</small></span>
+          <span><span data-i18n="bad_threshold">悪手しきい値</span> <small data-i18n="no_warning_zero">(0=警告なし)</small></span>
           <div class="setting-control">
             <input type="range" id="bad-threshold" min="0" max="95" step="5" value="75">
             <span id="bad-threshold-val">75%</span>
@@ -168,36 +175,36 @@
         -->
 
         <label class="setting-row">
-          <span>発火手を除外 <small>(構築練習用)</small></span>
+          <span><span data-i18n="exclude_fire">発火手を除外</span> <small data-i18n="build_practice">(構築練習用)</small></span>
           <div class="setting-control">
             <input type="checkbox" id="no-fire-toggle" style="width:16px;height:16px;cursor:pointer">
           </div>
         </label>
 
         <label class="setting-row">
-          <span>NEXT表示 <small>(ネクネク)</small></span>
+          <span><span data-i18n="next_display">NEXT表示</span> <small data-i18n="next_next">(ネクネク)</small></span>
           <div class="setting-control">
             <select id="next-visible" style="background:#2d2d4e;color:#eee;border:1px solid #555;padding:3px 6px;border-radius:4px">
-              <option value="2">ネクネクあり（2つ）</option>
-              <option value="1">ネクのみ（1つ）</option>
-              <option value="0">非表示</option>
+              <option value="2" data-i18n="next_two">ネクネクあり（2つ）</option>
+              <option value="1" data-i18n="next_one">ネクのみ（1つ）</option>
+              <option value="0" data-i18n="hidden">非表示</option>
             </select>
           </div>
         </label>
 
         <div class="setting-row">
-          <span>キー設定 <small>(ボタンを押して変更・Ctrl/Alt同時押し可)</small></span>
+          <span><span data-i18n="key_settings">キー設定</span> <small data-i18n="key_settings_note">(ボタンを押して変更・Ctrl/Alt同時押し可)</small></span>
           <div class="keyconfig-grid">
-            <span>左</span>        <button class="keyconfig-btn" data-action="left"></button>
-            <span>右</span>        <button class="keyconfig-btn" data-action="right"></button>
-            <span>落とす</span>    <button class="keyconfig-btn" data-action="down"></button>
-            <span>右回転</span>    <button class="keyconfig-btn" data-action="rotateCW"></button>
-            <span>左回転</span>    <button class="keyconfig-btn" data-action="rotateCCW"></button>
-            <span>アンドゥ</span>  <button class="keyconfig-btn" data-action="undo"></button>
+            <span data-i18n="left">左</span>        <button class="keyconfig-btn" data-action="left"></button>
+            <span data-i18n="right">右</span>        <button class="keyconfig-btn" data-action="right"></button>
+            <span data-i18n="drop">落とす</span>    <button class="keyconfig-btn" data-action="down"></button>
+            <span data-i18n="rotate_cw">右回転</span>    <button class="keyconfig-btn" data-action="rotateCW"></button>
+            <span data-i18n="rotate_ccw">左回転</span>    <button class="keyconfig-btn" data-action="rotateCCW"></button>
+            <span data-i18n="undo_label">アンドゥ</span>  <button class="keyconfig-btn" data-action="undo"></button>
             <span>Ask AI</span>    <button class="keyconfig-btn" data-action="askAI"></button>
-            <span>AI最善手</span>  <button class="keyconfig-btn" data-action="playAI"></button>
-            <span>新ゲーム</span>  <button class="keyconfig-btn" data-action="newGame"></button>
-            <span>初手に戻る</span><button class="keyconfig-btn" data-action="resetStart"></button>
+            <span data-i18n="play_ai_label">AI最善手</span>  <button class="keyconfig-btn" data-action="playAI"></button>
+            <span data-i18n="new_game_label">新ゲーム</span>  <button class="keyconfig-btn" data-action="newGame"></button>
+            <span data-i18n="reset_start_label">初手に戻る</span><button class="keyconfig-btn" data-action="resetStart"></button>
           </div>
         </div>
 
@@ -221,20 +228,20 @@
     <button onclick="document.getElementById('undo-btn').click()">Undo</button>
     <button onclick="document.getElementById('redo-btn').click()">Redo</button>
     <button class="primary" onclick="document.getElementById('ask-ai-btn').click()">Ask AI</button>
-    <button onclick="document.getElementById('play-ai-btn').click()">AI最善手</button>
-    <button onclick="document.getElementById('auto-play-btn').click()">オート</button>
+    <button onclick="document.getElementById('play-ai-btn').click()" data-i18n="play_ai_mobile">AI最善手</button>
+    <button onclick="document.getElementById('auto-play-btn').click()" data-i18n="auto_mobile">オート</button>
   </div>
 </div>
 
 <!-- AI Overlay -->
 <div id="ai-overlay" class="overlay">
   <div class="modal">
-    <h3>AI候補手</h3>
-    <p style="font-size:0.8rem;color:#aaa">現在の局面に対するAIの推奨手 (上位5件)</p>
+    <h3 data-i18n="ai_candidates">AI候補手</h3>
+    <p style="font-size:0.8rem;color:#aaa" data-i18n="ai_candidates_desc">現在の局面に対するAIの推奨手 (上位5件)</p>
     <ul id="ai-candidates" class="candidate-list"></ul>
-    <div id="ai-preview" class="ai-preview" aria-label="AI候補手の盤面プレビュー"></div>
+    <div id="ai-preview" class="ai-preview" aria-label="AI候補手の盤面プレビュー" data-i18n-aria-label="ai_preview_label"></div>
     <div class="modal-buttons">
-      <button id="close-ai-btn">閉じる [A / Esc]</button>
+      <button id="close-ai-btn" data-i18n="close_ai">閉じる [A / Esc]</button>
     </div>
   </div>
 </div>
@@ -242,12 +249,12 @@
 <!-- Bad Move Alert -->
 <div id="bad-move-overlay" class="overlay">
   <div class="modal">
-    <h3>⚠️ 悪い手です！</h3>
+    <h3 data-i18n="bad_move_title">⚠️ 悪い手です！</h3>
     <p id="bad-move-msg"></p>
-    <p style="font-size:0.75rem;color:#888;margin-top:6px">キー: <kbd>Z</kbd> やり直す　／　<kbd>Enter</kbd> このまま続ける</p>
+    <p style="font-size:0.75rem;color:#888;margin-top:6px" data-i18n-html="bad_move_keys">キー: <kbd>Z</kbd> やり直す　／　<kbd>Enter</kbd> このまま続ける</p>
     <div class="modal-buttons">
-      <button id="undo-alert-btn" class="danger">やり直す [Z]</button>
-      <button id="continue-btn">このまま続ける [Enter]</button>
+      <button id="undo-alert-btn" class="danger" data-i18n="undo_alert">やり直す [Z]</button>
+      <button id="continue-btn" data-i18n="continue_btn">このまま続ける [Enter]</button>
     </div>
   </div>
 </div>

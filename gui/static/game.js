@@ -1,6 +1,103 @@
 'use strict';
 
-const BUILD_DATE = '2026-05-28 22:41:46';
+const BUILD_DATE = '2026-05-29 13:43:51';
+
+const I18N = {
+  ja: {
+    title: 'とこぷよAI',
+    credit_ai_engine: 'AI engine', credit_developer: 'developer', last_updated: 'last updated',
+    ai_fatal_title: 'AIが動作していません。', reload: 'リロード', sw_reset: 'SW リセット', sw_reset_title: 'サービスワーカーをリセットして強制リロード',
+    seed: 'シード', new_game: '新しいゲーム', reset_start: '初手に戻る', ai_eval_mode: 'AI評価モード', language: '言語',
+    controls: '操作', rotate_ccw_btn: '↺ 左回転 (Z)', rotate_cw_btn: '↻ 右回転 (X)', left_btn: '← (←)', drop_btn: '落とす (↓)', right_btn: '→ (→)',
+    play_ai_btn: 'AI最善手を打つ (S)', autoplay: 'オートプレイ', auto_stop: '■ 停止', copy_puyop_url: 'ぷよ譜URLをコピー', copy_done: 'コピー完了！', puyop_url_prompt: 'ぷよ譜URL:',
+    garbage_puyo: 'おじゃまぷよ', garbage_mode: 'おじゃま置きモード', garbage_mode_on: '■ おじゃま置きON', garbage_count_suffix: '個落とす', drop_garbage: '落とす',
+    moves: '手数', chains: '連鎖', score: 'スコア', settings: '設定', strength_preset: '強さプリセット', preset_fast: '速度重視', preset_standard: '標準', preset_strong: '強め',
+    beam_width: 'ビーム幅', accuracy_speed: '(精度・速度)', search_depth: '探索深さ', lookahead: '(手数先読み)', ai_timeout: 'AIタイムアウト', seconds: '(秒)', bad_threshold: '悪手しきい値', no_warning_zero: '(0=警告なし)',
+    exclude_fire: '発火手を除外', build_practice: '(構築練習用)', next_display: 'NEXT表示', next_next: '(ネクネク)', next_two: 'ネクネクあり（2つ）', next_one: 'ネクのみ（1つ）', hidden: '非表示',
+    key_settings: 'キー設定', key_settings_note: '(ボタンを押して変更・Ctrl/Alt同時押し可)', left: '左', right: '右', drop: '落とす', rotate_cw: '右回転', rotate_ccw: '左回転', undo_label: 'アンドゥ', play_ai_label: 'AI最善手', new_game_label: '新ゲーム', reset_start_label: '初手に戻る',
+    play_ai_mobile: 'AI最善手', auto_mobile: 'オート', ai_candidates: 'AI候補手', ai_candidates_desc: '現在の局面に対するAIの推奨手 (上位5件)', ai_preview_label: 'AI候補手の盤面プレビュー', close_ai: '閉じる [A / Esc]',
+    bad_move_title: '⚠️ 悪い手です！', bad_move_keys: 'キー: <kbd>Z</kbd> やり直す　／　<kbd>Enter</kbd> このまま続ける', undo_alert: 'やり直す [Z]', continue_btn: 'このまま続ける [Enter]',
+    waiting: '待機中', ai_thinking: 'AI思考中...', ai_error: 'AIエラー: {message}', ai_ready: 'AI準備完了', chain_banner: '{count}連鎖！<br><span style="font-size:1.1rem">{score}点</span>', unbound: '(未設定)',
+    ai_init_failed: 'AIエンジン初期化失敗: {message}', ai_worker_error: 'AIワーカーエラー: {message}', candidate_title: '1回目でプレビュー、もう一度クリックでこの配置に移動', game_over: 'ゲームオーバー！', no_move_for_url: 'まだ手が置かれていません',
+    bad_move_message: 'あなたの手: <strong>x={humanX} {humanR}</strong> ({humanScore}点)<br>AIの最善手: <strong>x={bestX} {bestR}</strong> ({bestScore}点)<br>スコア比: <strong>{ratio}%</strong>',
+    ios_sab_note: '「SW リセット」ボタンを試してください。それでも直らない場合はiOS Safariの既知の制限の可能性があります。', sab_note: '「SW リセット」またはCtrl+Shift+Rリロードを試してください。',
+  },
+  en: {
+    title: 'Tokopuyo AI',
+    credit_ai_engine: 'AI engine', credit_developer: 'developer', last_updated: 'last updated',
+    ai_fatal_title: 'AI is not running.', reload: 'Reload', sw_reset: 'Reset SW', sw_reset_title: 'Reset the service worker and force reload',
+    seed: 'Seed', new_game: 'New Game', reset_start: 'Reset Start', ai_eval_mode: 'AI review mode', language: 'Language',
+    controls: 'Controls', rotate_ccw_btn: '↺ Rotate left (Z)', rotate_cw_btn: '↻ Rotate right (X)', left_btn: '← (←)', drop_btn: 'Drop (↓)', right_btn: '→ (→)',
+    play_ai_btn: 'Play AI best move (S)', autoplay: 'Autoplay', auto_stop: '■ Stop', copy_puyop_url: 'Copy Puyop URL', copy_done: 'Copied!', puyop_url_prompt: 'Puyop URL:',
+    garbage_puyo: 'Garbage Puyo', garbage_mode: 'Garbage placement mode', garbage_mode_on: '■ Garbage mode ON', garbage_count_suffix: 'to drop', drop_garbage: 'Drop',
+    moves: 'Moves', chains: 'Chains', score: 'Score', settings: 'Settings', strength_preset: 'Strength preset', preset_fast: 'Fast', preset_standard: 'Standard', preset_strong: 'Strong',
+    beam_width: 'Beam width', accuracy_speed: '(accuracy/speed)', search_depth: 'Search depth', lookahead: '(lookahead)', ai_timeout: 'AI timeout', seconds: '(sec)', bad_threshold: 'Bad-move threshold', no_warning_zero: '(0 = no warning)',
+    exclude_fire: 'Exclude firing moves', build_practice: '(build practice)', next_display: 'NEXT display', next_next: '(NEXT/NEXT2)', next_two: 'Show NEXT2 (2)', next_one: 'NEXT only (1)', hidden: 'Hidden',
+    key_settings: 'Key settings', key_settings_note: '(click a button to change; Ctrl/Alt supported)', left: 'Left', right: 'Right', drop: 'Drop', rotate_cw: 'Rotate right', rotate_ccw: 'Rotate left', undo_label: 'Undo', play_ai_label: 'AI best move', new_game_label: 'New game', reset_start_label: 'Reset start',
+    play_ai_mobile: 'AI best move', auto_mobile: 'Auto', ai_candidates: 'AI Candidate Moves', ai_candidates_desc: 'Top 5 AI recommendations for the current position', ai_preview_label: 'AI candidate board preview', close_ai: 'Close [A / Esc]',
+    bad_move_title: '⚠️ Bad move!', bad_move_keys: 'Keys: <kbd>Z</kbd> undo / <kbd>Enter</kbd> continue', undo_alert: 'Undo [Z]', continue_btn: 'Continue [Enter]',
+    waiting: 'Waiting', ai_thinking: 'AI thinking...', ai_error: 'AI error: {message}', ai_ready: 'AI ready', chain_banner: '{count}-chain!<br><span style="font-size:1.1rem">{score} pts</span>', unbound: '(unset)',
+    ai_init_failed: 'AI engine initialization failed: {message}', ai_worker_error: 'AI worker error: {message}', candidate_title: 'First click previews, second click moves to this placement', game_over: 'Game over!', no_move_for_url: 'No moves have been placed yet',
+    bad_move_message: 'Your move: <strong>x={humanX} {humanR}</strong> ({humanScore} pts)<br>AI best move: <strong>x={bestX} {bestR}</strong> ({bestScore} pts)<br>Score ratio: <strong>{ratio}%</strong>',
+    ios_sab_note: 'Try the “Reset SW” button. If it still fails, this may be an iOS Safari limitation.', sab_note: 'Try “Reset SW” or Ctrl+Shift+R reload.',
+  },
+};
+
+const LANG_STORAGE_KEY = 'tokopuyoLang';
+
+function normalizeLang(lang) {
+  const value = String(lang || '').toLowerCase();
+  if (value.startsWith('ja')) return 'ja';
+  if (value.startsWith('en')) return 'en';
+  return null;
+}
+
+function detectInitialLang() {
+  const params = new URLSearchParams(window.location.search);
+  const queryLang = normalizeLang(params.get('lang'));
+  if (queryLang) return queryLang;
+  try {
+    const savedLang = normalizeLang(localStorage.getItem(LANG_STORAGE_KEY));
+    if (savedLang) return savedLang;
+  } catch {}
+  for (const lang of navigator.languages || [navigator.language]) {
+    const normalized = normalizeLang(lang);
+    if (normalized) return normalized;
+  }
+  return 'en';
+}
+
+let currentLang = detectInitialLang();
+let refreshKeyconfigButtons = () => {};
+
+function t(key, params = {}) {
+  const dict = I18N[currentLang] || I18N.en;
+  let text = dict[key] ?? I18N.ja[key] ?? key;
+  for (const [name, value] of Object.entries(params)) {
+    text = text.split(`{${name}}`).join(String(value));
+  }
+  return text;
+}
+
+function applyI18n() {
+  document.documentElement.lang = currentLang;
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll('[data-i18n-aria-label]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel)); });
+  const langSelect = document.getElementById('lang-select');
+  if (langSelect) langSelect.value = currentLang;
+}
+
+function setLanguage(lang) {
+  const next = normalizeLang(lang) || 'en';
+  currentLang = next;
+  try { localStorage.setItem(LANG_STORAGE_KEY, next); } catch {}
+  applyI18n();
+  refreshKeyconfigButtons();
+  render();
+}
 
 // ─── PRNG ────────────────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -422,7 +519,7 @@ function renderPiecePreview() {
   el.innerHTML = '';
 
   if (!game.currentPiece) {
-    el.innerHTML = '<div style="color:#888;font-size:0.75rem">待機中</div>';
+    el.innerHTML = `<div style="color:#888;font-size:0.75rem">${t('waiting')}</div>`;
     return;
   }
 
@@ -462,7 +559,7 @@ function renderQueue() {
   if (!el) return;
   el.innerHTML = '';
   if (settings.nextVisible === 0) {
-    el.innerHTML = '<div style="color:#888;font-size:0.75rem">非表示</div>';
+    el.innerHTML = `<div style="color:#888;font-size:0.75rem">${t('hidden')}</div>`;
     return;
   }
   ensureQueueLength(game.queueIndex + settings.nextVisible + 1);
@@ -494,13 +591,13 @@ function renderAiStatus() {
     return;
   }
   if (game.aiQuerying) {
-    el.textContent = 'AI思考中...';
+    el.textContent = t('ai_thinking');
     el.className = 'ai-status querying';
   } else if (game.aiError) {
-    el.textContent = 'AIエラー: ' + game.aiError;
+    el.textContent = t('ai_error', { message: game.aiError });
     el.className = 'ai-status error';
   } else if (game.pendingAI) {
-    el.textContent = 'AI準備完了';
+    el.textContent = t('ai_ready');
     el.className = 'ai-status ready';
   } else {
     el.textContent = '';
@@ -533,12 +630,12 @@ function render() {
   });
   const autoBtn = document.getElementById('auto-play-btn');
   if (autoBtn) {
-    autoBtn.textContent = game.autoPlaying ? '■ 停止' : 'オートプレイ';
+    autoBtn.textContent = game.autoPlaying ? t('auto_stop') : t('autoplay');
     autoBtn.disabled = game.gameOver && !game.autoPlaying;
   }
   const garbageBtn = document.getElementById('garbage-mode-btn');
   if (garbageBtn) {
-    garbageBtn.textContent = game.garbageMode ? '■ おじゃま置きON' : 'おじゃま置きモード';
+    garbageBtn.textContent = game.garbageMode ? t('garbage_mode_on') : t('garbage_mode');
     garbageBtn.classList.toggle('active-mode', game.garbageMode);
   }
   const fieldEl = document.getElementById('field');
@@ -562,7 +659,7 @@ async function animateChains(steps) {
     }
 
     if (banner) {
-      banner.innerHTML = `${i + 1}連鎖！<br><span style="font-size:1.1rem">${stepScore.toLocaleString()}点</span>`;
+      banner.innerHTML = t('chain_banner', { count: i + 1, score: stepScore.toLocaleString() });
       banner.classList.add('show');
     }
 
@@ -614,7 +711,7 @@ function saveKeyConfig() {
 }
 
 function keyLabel(binding) {
-  if (!binding) return '(未設定)';
+  if (!binding) return t('unbound');
   const map = { ArrowLeft: '←', ArrowRight: '→', ArrowDown: '↓', ArrowUp: '↑', ' ': 'Space', Enter: 'Enter', Escape: 'Esc', Control: 'Ctrl', Alt: 'Alt' };
   return binding.split('+').map(p => map[p] || p.toUpperCase()).join('+');
 }
@@ -663,7 +760,7 @@ _aiWorker.onmessage = (e) => {
     return;
   }
   if (e.data.type === 'init_error') {
-    _showAIFatalError('AIエンジン初期化失敗: ' + e.data.message);
+    _showAIFatalError(t('ai_init_failed', { message: e.data.message }));
     for (const [id, callbacks] of _aiPending) {
       _aiPending.delete(id);
       callbacks.reject(new Error(e.data.message));
@@ -680,7 +777,7 @@ _aiWorker.onmessage = (e) => {
 
 _aiWorker.onerror = (e) => {
   const msg = e.message || 'unknown';
-  _showAIFatalError('AIワーカーエラー: ' + msg);
+  _showAIFatalError(t('ai_worker_error', { message: msg }));
   for (const [id, callbacks] of _aiPending) {
     _aiPending.delete(id);
     callbacks.reject(new Error('AI worker error: ' + msg));
@@ -891,7 +988,7 @@ function showAIOverlay(candidates) {
     const li = document.createElement('li');
     li.className = i === 0 ? 'best' : '';
     li.style.cursor = 'pointer';
-    li.title = '1回目でプレビュー、もう一度クリックでこの配置に移動';
+    li.title = t('candidate_title');
     li.setAttribute('role', 'option');
     li.setAttribute('aria-selected', 'false');
     li.innerHTML = `
@@ -1065,7 +1162,7 @@ function nextPiece() {
   // Check game over: if both cols of center are full
   if (lowestEmpty(game.field, 2) === -1 && lowestEmpty(game.field, 3) === -1) {
     game.gameOver = true;
-    alert('ゲームオーバー！');
+    alert(t('game_over'));
     render();
     return;
   }
@@ -1147,13 +1244,15 @@ function showBadMoveAlert(info, humanX, humanR) {
   const msg = document.getElementById('bad-move-msg');
   if (!overlay || !msg) return;
 
-  msg.innerHTML = `
-    あなたの手: <strong>x=${humanX + 1} ${humanR}</strong>
-    (${info.humanScore.toLocaleString()}点)<br>
-    AIの最善手: <strong>x=${info.bestX + 1} ${info.bestR}</strong>
-    (${info.bestScore.toLocaleString()}点)<br>
-    スコア比: <strong>${Math.round(info.ratio * 100)}%</strong>
-  `;
+  msg.innerHTML = t('bad_move_message', {
+    humanX: humanX + 1,
+    humanR,
+    humanScore: info.humanScore.toLocaleString(),
+    bestX: info.bestX + 1,
+    bestR: info.bestR,
+    bestScore: info.bestScore.toLocaleString(),
+    ratio: Math.round(info.ratio * 100),
+  });
 
   overlay.classList.add('active');
 
@@ -1484,6 +1583,7 @@ function setupControls() {
       btn.classList.toggle('waiting', keyCaptureAction === action);
     });
   }
+  refreshKeyconfigButtons = updateKeyconfigButtons;
   updateKeyconfigButtons();
 
   document.querySelectorAll('.keyconfig-btn').forEach(btn => {
@@ -1512,6 +1612,8 @@ function setupControls() {
   document.getElementById('play-ai-btn').addEventListener('click', onPlayAI);
   document.getElementById('close-ai-btn').addEventListener('click', hideAIOverlay);
   document.getElementById('auto-play-btn').addEventListener('click', onAutoPlay);
+  const langSelect = document.getElementById('lang-select');
+  if (langSelect) langSelect.addEventListener('change', e => setLanguage(e.target.value));
 
   document.getElementById('garbage-mode-btn').addEventListener('click', () => {
     game.garbageMode = !game.garbageMode;
@@ -1526,15 +1628,15 @@ function setupControls() {
   });
 
   document.getElementById('puyop-url-btn').addEventListener('click', () => {
-    if (game.queueIndex === 0) { alert('まだ手が置かれていません'); return; }
+    if (game.queueIndex === 0) { alert(t('no_move_for_url')); return; }
     const url = generatePuyopURL();
     navigator.clipboard.writeText(url).then(() => {
       const btn = document.getElementById('puyop-url-btn');
       const orig = btn.textContent;
-      btn.textContent = 'コピー完了！';
+      btn.textContent = t('copy_done');
       setTimeout(() => { btn.textContent = orig; }, 1500);
     }).catch(() => {
-      prompt('ぷよ譜URL:', url);
+      prompt(t('puyop_url_prompt'), url);
     });
     focusGame();
   });
@@ -1639,17 +1741,21 @@ function setupControls() {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  applyI18n();
+
   // last updated表示
   const bdEl = document.getElementById('build-date');
   if (bdEl) bdEl.textContent = BUILD_DATE;
+
+  if (_aiWorkerFatalError) _showAIFatalError(_aiWorkerFatalError);
 
   // SharedArrayBuffer / crossOriginIsolated チェック
   if (!self.crossOriginIsolated || typeof SharedArrayBuffer === 'undefined') {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const iosNote = isIOS
-      ? '「SW リセット」ボタンを試してください。それでも直らない場合はiOS Safariの既知の制限の可能性があります。'
-      : '「SW リセット」またはCtrl+Shift+Rリロードを試してください。';
+      ? t('ios_sab_note')
+      : t('sab_note');
 
     const swSupport = 'serviceWorker' in navigator;
     const swController = swSupport ? (navigator.serviceWorker.controller ? 'active' : 'none') : 'unsupported';

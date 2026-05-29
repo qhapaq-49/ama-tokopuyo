@@ -64,6 +64,14 @@ h1 {
   cursor: pointer;
 }
 
+.controls-bar select {
+  background: #2d2d4e;
+  border: 1px solid #555;
+  color: #eee;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
 button {
   background: #3d3d6b;
   border: 1px solid #6060aa;
