@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD_DATE = '2026-05-29 13:43:51';
+const BUILD_DATE = '2026-05-31 22:05:05';
 
 const I18N = {
   ja: {
@@ -20,7 +20,7 @@ const I18N = {
     waiting: '待機中', ai_thinking: 'AI思考中...', ai_error: 'AIエラー: {message}', ai_ready: 'AI準備完了', chain_banner: '{count}連鎖！<br><span style="font-size:1.1rem">{score}点</span>', unbound: '(未設定)',
     ai_init_failed: 'AIエンジン初期化失敗: {message}', ai_worker_error: 'AIワーカーエラー: {message}', candidate_title: '1回目でプレビュー、もう一度クリックでこの配置に移動', game_over: 'ゲームオーバー！', no_move_for_url: 'まだ手が置かれていません',
     bad_move_message: 'あなたの手: <strong>x={humanX} {humanR}</strong> ({humanScore}点)<br>AIの最善手: <strong>x={bestX} {bestR}</strong> ({bestScore}点)<br>スコア比: <strong>{ratio}%</strong>',
-    ios_sab_note: '「SW リセット」ボタンを試してください。それでも直らない場合はiOS Safariの既知の制限の可能性があります。', sab_note: '「SW リセット」またはCtrl+Shift+Rリロードを試してください。',
+    ios_sab_note: '「SW リセット」ボタンを試してください。それでも直らない場合はiOS Safariの既知の制限の可能性があります。', sab_note: '「SW リセット」またはCtrl+Shift+Rリロードを試してください。', seed_invalid: '0-{max}の整数を入力してください',
   },
   en: {
     title: 'Tokopuyo AI',
@@ -39,7 +39,7 @@ const I18N = {
     waiting: 'Waiting', ai_thinking: 'AI thinking...', ai_error: 'AI error: {message}', ai_ready: 'AI ready', chain_banner: '{count}-chain!<br><span style="font-size:1.1rem">{score} pts</span>', unbound: '(unset)',
     ai_init_failed: 'AI engine initialization failed: {message}', ai_worker_error: 'AI worker error: {message}', candidate_title: 'First click previews, second click moves to this placement', game_over: 'Game over!', no_move_for_url: 'No moves have been placed yet',
     bad_move_message: 'Your move: <strong>x={humanX} {humanR}</strong> ({humanScore} pts)<br>AI best move: <strong>x={bestX} {bestR}</strong> ({bestScore} pts)<br>Score ratio: <strong>{ratio}%</strong>',
-    ios_sab_note: 'Try the “Reset SW” button. If it still fails, this may be an iOS Safari limitation.', sab_note: 'Try “Reset SW” or Ctrl+Shift+R reload.',
+    ios_sab_note: 'Try the “Reset SW” button. If it still fails, this may be an iOS Safari limitation.', sab_note: 'Try “Reset SW” or Ctrl+Shift+R reload.', seed_invalid: 'Enter an integer from 0 to {max}.',
   },
 };
 
@@ -111,6 +111,8 @@ function mulberry32(seed) {
 }
 
 const COLORS = ['R', 'Y', 'G', 'B'];
+const MIN_SEED = 0;
+const MAX_SEED = 65535;
 const QUEUE_CHUNK_SIZE = 256;
 
 // ─── tsumo-rule.md準拠 ぷよぷよ20th LCGツモ生成 ────────────────────────────
@@ -154,7 +156,7 @@ function generateTsumoLCG(seed) {
 }
 
 function generateQueue(seed, count = QUEUE_CHUNK_SIZE) {
-  if (seed >= 0 && seed <= 65535) {
+  if (seed >= MIN_SEED && seed <= MAX_SEED) {
     const base = generateTsumoLCG(seed);
     return Array.from({ length: count }, (_, i) => base[i % 128]);
   }
@@ -163,6 +165,24 @@ function generateQueue(seed, count = QUEUE_CHUNK_SIZE) {
     COLORS[Math.floor(rng() * 4)],
     COLORS[Math.floor(rng() * 4)],
   ]);
+}
+
+function randomSeed() {
+  return Math.floor(Math.random() * (MAX_SEED + 1));
+}
+
+function parseSeedValue(value) {
+  const text = String(value ?? '').trim();
+  if (!/^\d+$/.test(text)) return null;
+  const seed = Number(text);
+  if (!Number.isSafeInteger(seed) || seed < MIN_SEED || seed > MAX_SEED) return null;
+  return seed;
+}
+
+function updateSeedUrl(seed) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('seed', String(seed));
+  history.replaceState(null, '', url);
 }
 
 // ─── FIELD LOGIC ─────────────────────────────────────────────────────────────
@@ -823,6 +843,7 @@ function storePendingAICandidates(candidates, queueIndex) {
 
 async function startAIQuery() {
   if (game.aiQuerying || game.gameOver) return;
+  const session = game.session;
   const qi = game.queueIndex;
   // Need at least 2 pairs for the binary
   ensureQueueLength(qi + 4);
@@ -836,15 +857,18 @@ async function startAIQuery() {
 
   try {
     const result = await queryAI(game.field, queuePairs);
+    if (game.session !== session) return;
     if (result.error) throw new Error(result.error);
     if (game.queueIndex === qi) {
       storePendingAICandidates(result.candidates, qi);
     }
   } catch (e) {
-    game.aiError = e.message;
+    if (game.session === session) game.aiError = e.message;
   } finally {
-    game.aiQuerying = false;
-    render();
+    if (game.session === session) {
+      game.aiQuerying = false;
+      render();
+    }
   }
 }
 
@@ -1456,12 +1480,36 @@ function focusGame() {
   document.getElementById('field').focus({ preventScroll: true });
 }
 
+function startSeededNewGame(seed, options = {}) {
+  const { updateInput = true, updateUrl = true, focus = false } = options;
+  const seedInput = document.getElementById('seed-input');
+  if (updateInput && seedInput) seedInput.value = seed;
+  if (seedInput) seedInput.setCustomValidity('');
+  startNewGame(seed);
+  if (updateUrl) updateSeedUrl(seed);
+  if (focus) focusGame();
+}
+
 function setupControls() {
-  document.getElementById('new-game-btn').addEventListener('click', () => {
-    const seed = Math.floor(Math.random() * 65536);
-    document.getElementById('seed-input').value = seed;
-    startNewGame(seed);
+  const seedInput = document.getElementById('seed-input');
+  seedInput.addEventListener('input', e => {
+    const seed = parseSeedValue(e.target.value);
+    if (seed === null) {
+      e.target.setCustomValidity(t('seed_invalid', { max: MAX_SEED }));
+      return;
+    }
+    e.target.setCustomValidity('');
+    startSeededNewGame(seed, { updateInput: false });
+  });
+  seedInput.addEventListener('change', e => {
+    const seed = parseSeedValue(e.target.value);
+    e.target.value = seed === null ? game.seed : seed;
+    e.target.setCustomValidity('');
     focusGame();
+  });
+
+  document.getElementById('new-game-btn').addEventListener('click', () => {
+    startSeededNewGame(randomSeed(), { focus: true });
   });
 
   document.getElementById('reset-start-btn').addEventListener('click', () => {
@@ -1788,9 +1836,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Read seed from URL if present
   const params = new URLSearchParams(window.location.search);
   const urlSeed = params.get('seed');
-  const seed = urlSeed ? parseInt(urlSeed) : Math.floor(Math.random() * 65536);
-  document.getElementById('seed-input').value = seed;
+  const seed = parseSeedValue(urlSeed) ?? randomSeed();
 
-  startNewGame(seed);
+  startSeededNewGame(seed, { updateInput: true, updateUrl: true });
   focusGame();
 });
